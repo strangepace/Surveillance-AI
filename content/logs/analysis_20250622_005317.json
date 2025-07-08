@@ -1,0 +1,2845 @@
+{
+  "timestamp": "2025-06-22T00:53:17.988537",
+  "video_path": "content/uploads/video_2025-06-22_00-52-14_naani.mp4",
+  "prompt": "Describe what is happening in the video.",
+  "model": "chatgpt",
+  "response": {
+    "status": "success",
+    "model_used": "chatgpt",
+    "processing_time_seconds": 63.0,
+    "question": "Describe what is happening in the video.",
+    "answer": "The video shows people at an airport wearing various types of clothing, carrying luggage and bags. Some are sitting in chairs, while others are walking around. There are cars and bicycles outside in the automotive exterior area. The video captures the hustle and bustle of air travel.",
+    "raw_detections": {
+      "labels": [
+        {
+          "label": "airline",
+          "confidence": 0.4494723379611969,
+          "start_time": 93.366666,
+          "end_time": 95.5
+        },
+        {
+          "label": "motor vehicle",
+          "confidence": 0.3789287209510803,
+          "start_time": 0.0,
+          "end_time": 8.1
+        },
+        {
+          "label": "motor vehicle",
+          "confidence": 0.7584758996963501,
+          "start_time": 54.633333,
+          "end_time": 56.266666
+        },
+        {
+          "label": "food",
+          "confidence": 0.8072111010551453,
+          "start_time": 40.733333,
+          "end_time": 54.6
+        },
+        {
+          "label": "wide body aircraft",
+          "confidence": 0.7041488289833069,
+          "start_time": 93.366666,
+          "end_time": 95.5
+        },
+        {
+          "label": "airport",
+          "confidence": 0.6321116089820862,
+          "start_time": 93.366666,
+          "end_time": 95.5
+        },
+        {
+          "label": "airplane",
+          "confidence": 0.5176114439964294,
+          "start_time": 93.366666,
+          "end_time": 95.5
+        },
+        {
+          "label": "airliner",
+          "confidence": 0.6911963820457458,
+          "start_time": 93.366666,
+          "end_time": 95.5
+        },
+        {
+          "label": "vacation",
+          "confidence": 0.3274918794631958,
+          "start_time": 69.933333,
+          "end_time": 71.633333
+        },
+        {
+          "label": "flower",
+          "confidence": 0.4025232791900635,
+          "start_time": 18.8,
+          "end_time": 27.3
+        },
+        {
+          "label": "vehicle",
+          "confidence": 0.5094954371452332,
+          "start_time": 0.0,
+          "end_time": 8.1
+        },
+        {
+          "label": "vehicle",
+          "confidence": 0.8577656745910645,
+          "start_time": 54.633333,
+          "end_time": 56.266666
+        },
+        {
+          "label": "vehicle",
+          "confidence": 0.6373827457427979,
+          "start_time": 93.366666,
+          "end_time": 95.5
+        },
+        {
+          "label": "people",
+          "confidence": 0.31426355242729187,
+          "start_time": 97.233333,
+          "end_time": 101.466666
+        },
+        {
+          "label": "facial expression",
+          "confidence": 0.30502527952194214,
+          "start_time": 15.833333,
+          "end_time": 18.766666
+        },
+        {
+          "label": "aviation",
+          "confidence": 0.8432005047798157,
+          "start_time": 93.366666,
+          "end_time": 95.5
+        },
+        {
+          "label": "automotive exterior",
+          "confidence": 0.3796737790107727,
+          "start_time": 54.633333,
+          "end_time": 56.266666
+        },
+        {
+          "label": "car",
+          "confidence": 0.7258776426315308,
+          "start_time": 54.633333,
+          "end_time": 56.266666
+        },
+        {
+          "label": "aircraft",
+          "confidence": 0.8510302901268005,
+          "start_time": 93.366666,
+          "end_time": 95.5
+        },
+        {
+          "label": "air travel",
+          "confidence": 0.6243770718574524,
+          "start_time": 93.366666,
+          "end_time": 95.5
+        },
+        {
+          "label": "headgear",
+          "confidence": 0.36264175176620483,
+          "start_time": 71.666666,
+          "end_time": 73.3
+        }
+      ],
+      "objects": [
+        {
+          "label": "person",
+          "confidence": 0.9938930869102478,
+          "start_time": 0.0,
+          "end_time": 3.0
+        },
+        {
+          "label": "clothing",
+          "confidence": 0.7439687252044678,
+          "start_time": 0.0,
+          "end_time": 3.0
+        },
+        {
+          "label": "car",
+          "confidence": 0.7136818766593933,
+          "start_time": 0.1,
+          "end_time": 0.3
+        },
+        {
+          "label": "wheel",
+          "confidence": 0.8308880925178528,
+          "start_time": 0.1,
+          "end_time": 3.0
+        },
+        {
+          "label": "car",
+          "confidence": 0.8078400492668152,
+          "start_time": 1.2,
+          "end_time": 2.9
+        },
+        {
+          "label": "license plate",
+          "confidence": 0.5066678524017334,
+          "start_time": 2.4,
+          "end_time": 2.4
+        },
+        {
+          "label": "person",
+          "confidence": 0.9621769785881042,
+          "start_time": 3.1,
+          "end_time": 3.5
+        },
+        {
+          "label": "wheel",
+          "confidence": 0.7533855438232422,
+          "start_time": 3.1,
+          "end_time": 3.2
+        },
+        {
+          "label": "clothing",
+          "confidence": 0.7019509673118591,
+          "start_time": 3.1,
+          "end_time": 3.3
+        },
+        {
+          "label": "car",
+          "confidence": 0.7103589773178101,
+          "start_time": 3.2,
+          "end_time": 3.2
+        },
+        {
+          "label": "person",
+          "confidence": 0.9800047278404236,
+          "start_time": 3.3,
+          "end_time": 5.1
+        },
+        {
+          "label": "person",
+          "confidence": 0.978672206401825,
+          "start_time": 3.3,
+          "end_time": 5.1
+        },
+        {
+          "label": "person",
+          "confidence": 0.9757125973701477,
+          "start_time": 3.3,
+          "end_time": 5.1
+        },
+        {
+          "label": "person",
+          "confidence": 0.9770027995109558,
+          "start_time": 3.3,
+          "end_time": 5.1
+        },
+        {
+          "label": "shirt",
+          "confidence": 0.6987709403038025,
+          "start_time": 3.3,
+          "end_time": 5.1
+        },
+        {
+          "label": "clothing",
+          "confidence": 0.7979592680931091,
+          "start_time": 3.3,
+          "end_time": 5.1
+        },
+        {
+          "label": "hat",
+          "confidence": 0.5609251856803894,
+          "start_time": 3.3,
+          "end_time": 3.3
+        },
+        {
+          "label": "license plate",
+          "confidence": 0.5055466890335083,
+          "start_time": 3.3,
+          "end_time": 3.3
+        },
+        {
+          "label": "shirt",
+          "confidence": 0.6949959397315979,
+          "start_time": 3.4,
+          "end_time": 5.1
+        },
+        {
+          "label": "shirt",
+          "confidence": 0.6827831864356995,
+          "start_time": 3.4,
+          "end_time": 5.1
+        },
+        {
+          "label": "window",
+          "confidence": 0.5809016823768616,
+          "start_time": 4.2,
+          "end_time": 5.1
+        },
+        {
+          "label": "person",
+          "confidence": 0.9736008644104004,
+          "start_time": 5.2,
+          "end_time": 8.0
+        },
+        {
+          "label": "person",
+          "confidence": 0.8387945294380188,
+          "start_time": 5.2,
+          "end_time": 5.5
+        },
+        {
+          "label": "person",
+          "confidence": 0.8662357926368713,
+          "start_time": 5.2,
+          "end_time": 5.4
+        },
+        {
+          "label": "shirt",
+          "confidence": 0.7170023322105408,
+          "start_time": 5.2,
+          "end_time": 8.0
+        },
+        {
+          "label": "shirt",
+          "confidence": 0.7056177258491516,
+          "start_time": 5.2,
+          "end_time": 7.9
+        },
+        {
+          "label": "necklace",
+          "confidence": 0.6143461465835571,
+          "start_time": 5.3,
+          "end_time": 8.0
+        },
+        {
+          "label": "hat",
+          "confidence": 0.5793427228927612,
+          "start_time": 5.3,
+          "end_time": 5.3
+        },
+        {
+          "label": "person",
+          "confidence": 0.9849733710289001,
+          "start_time": 8.1,
+          "end_time": 10.5
+        },
+        {
+          "label": "top",
+          "confidence": 0.5894257426261902,
+          "start_time": 8.1,
+          "end_time": 8.3
+        },
+        {
+          "label": "shirt",
+          "confidence": 0.7028905749320984,
+          "start_time": 8.1,
+          "end_time": 10.5
+        },
+        {
+          "label": "clothing",
+          "confidence": 0.7501736283302307,
+          "start_time": 8.2,
+          "end_time": 10.5
+        },
+        {
+          "label": "person",
+          "confidence": 0.9860957264900208,
+          "start_time": 8.3,
+          "end_time": 10.5
+        },
+        {
+          "label": "person",
+          "confidence": 0.9898386597633362,
+          "start_time": 8.3,
+          "end_time": 10.5
+        },
+        {
+          "label": "person",
+          "confidence": 0.9865278005599976,
+          "start_time": 8.3,
+          "end_time": 10.5
+        },
+        {
+          "label": "person",
+          "confidence": 0.9957565665245056,
+          "start_time": 8.4,
+          "end_time": 10.5
+        },
+        {
+          "label": "clothing",
+          "confidence": 0.7711366415023804,
+          "start_time": 8.4,
+          "end_time": 10.5
+        },
+        {
+          "label": "clothing",
+          "confidence": 0.7495649456977844,
+          "start_time": 8.4,
+          "end_time": 10.5
+        },
+        {
+          "label": "clothing",
+          "confidence": 0.7133293747901917,
+          "start_time": 8.4,
+          "end_time": 10.5
+        },
+        {
+          "label": "pants",
+          "confidence": 0.7111574411392212,
+          "start_time": 8.4,
+          "end_time": 10.5
+        },
+        {
+          "label": "pants",
+          "confidence": 0.5830836296081543,
+          "start_time": 8.4,
+          "end_time": 10.5
+        },
+        {
+          "label": "jeans",
+          "confidence": 0.5968058109283447,
+          "start_time": 8.4,
+          "end_time": 10.5
+        },
+        {
+          "label": "jeans",
+          "confidence": 0.6377553343772888,
+          "start_time": 8.6,
+          "end_time": 10.5
+        },
+        {
+          "label": "person",
+          "confidence": 0.932396411895752,
+          "start_time": 10.6,
+          "end_time": 10.6
+        },
+        {
+          "label": "person",
+          "confidence": 0.9182178378105164,
+          "start_time": 10.6,
+          "end_time": 10.6
+        },
+        {
+          "label": "person",
+          "confidence": 0.8975009918212891,
+          "start_time": 10.6,
+          "end_time": 10.6
+        },
+        {
+          "label": "person",
+          "confidence": 0.8958213329315186,
+          "start_time": 10.6,
+          "end_time": 10.6
+        },
+        {
+          "label": "person",
+          "confidence": 0.9880696535110474,
+          "start_time": 10.6,
+          "end_time": 13.6
+        },
+        {
+          "label": "pants",
+          "confidence": 0.8770391941070557,
+          "start_time": 10.6,
+          "end_time": 13.6
+        },
+        {
+          "label": "clothing",
+          "confidence": 0.7082268595695496,
+          "start_time": 10.6,
+          "end_time": 10.6
+        },
+        {
+          "label": "pants",
+          "confidence": 0.6207076907157898,
+          "start_time": 10.6,
+          "end_time": 10.6
+        },
+        {
+          "label": "top",
+          "confidence": 0.8920723795890808,
+          "start_time": 11.0,
+          "end_time": 13.6
+        },
+        {
+          "label": "belt",
+          "confidence": 0.8825695514678955,
+          "start_time": 11.0,
+          "end_time": 13.6
+        },
+        {
+          "label": "top",
+          "confidence": 0.8680751919746399,
+          "start_time": 13.7,
+          "end_time": 15.6
+        },
+        {
+          "label": "pants",
+          "confidence": 0.8425289392471313,
+          "start_time": 13.7,
+          "end_time": 15.6
+        },
+        {
+          "label": "person",
+          "confidence": 0.9688536524772644,
+          "start_time": 13.7,
+          "end_time": 15.6
+        },
+        {
+          "label": "top",
+          "confidence": 0.8006907105445862,
+          "start_time": 13.7,
+          "end_time": 15.6
+        },
+        {
+          "label": "shoe",
+          "confidence": 0.5563941597938538,
+          "start_time": 13.7,
+          "end_time": 15.6
+        },
+        {
+          "label": "pants",
+          "confidence": 0.6714149117469788,
+          "start_time": 13.9,
+          "end_time": 15.6
+        },
+        {
+          "label": "person",
+          "confidence": 0.9713759422302246,
+          "start_time": 14.0,
+          "end_time": 15.5
+        },
+        {
+          "label": "sneakers",
+          "confidence": 0.5083119869232178,
+          "start_time": 14.4,
+          "end_time": 15.6
+        },
+        {
+          "label": "person",
+          "confidence": 0.866971492767334,
+          "start_time": 15.0,
+          "end_time": 15.6
+        },
+        {
+          "label": "top",
+          "confidence": 0.7230541110038757,
+          "start_time": 15.7,
+          "end_time": 15.8
+        },
+        {
+          "label": "top",
+          "confidence": 0.6387765407562256,
+          "start_time": 15.7,
+          "end_time": 15.8
+        },
+        {
+          "label": "person",
+          "confidence": 0.9454716444015503,
+          "start_time": 15.8,
+          "end_time": 18.7
+        },
+        {
+          "label": "person",
+          "confidence": 0.8185709714889526,
+          "start_time": 15.8,
+          "end_time": 15.8
+        },
+        {
+          "label": "hat",
+          "confidence": 0.6467200517654419,
+          "start_time": 15.8,
+          "end_time": 17.0
+        },
+        {
+          "label": "container",
+          "confidence": 0.527045488357544,
+          "start_time": 15.9,
+          "end_time": 15.9
+        },
+        {
+          "label": "mobile phone",
+          "confidence": 0.5772761106491089,
+          "start_time": 16.1,
+          "end_time": 18.1
+        },
+        {
+          "label": "top",
+          "confidence": 0.5338274836540222,
+          "start_time": 16.8,
+          "end_time": 18.7
+        },
+        {
+          "label": "mirror",
+          "confidence": 0.5150880813598633,
+          "start_time": 16.9,
+          "end_time": 16.9
+        },
+        {
+          "label": "mirror",
+          "confidence": 0.5243718028068542,
+          "start_time": 17.8,
+          "end_time": 17.8
+        },
+        {
+          "label": "luggage & bags",
+          "confidence": 0.5987857580184937,
+          "start_time": 18.2,
+          "end_time": 18.4
+        },
+        {
+          "label": "mirror",
+          "confidence": 0.5089661478996277,
+          "start_time": 18.7,
+          "end_time": 18.7
+        },
+        {
+          "label": "person",
+          "confidence": 0.9867638945579529,
+          "start_time": 18.8,
+          "end_time": 20.7
+        },
+        {
+          "label": "person",
+          "confidence": 0.9615793824195862,
+          "start_time": 18.8,
+          "end_time": 20.7
+        },
+        {
+          "label": "pants",
+          "confidence": 0.9460084438323975,
+          "start_time": 18.8,
+          "end_time": 20.7
+        },
+        {
+          "label": "top",
+          "confidence": 0.8952133059501648,
+          "start_time": 18.8,
+          "end_time": 20.7
+        },
+        {
+          "label": "pants",
+          "confidence": 0.8824468851089478,
+          "start_time": 18.8,
+          "end_time": 20.7
+        },
+        {
+          "label": "top",
+          "confidence": 0.864143431186676,
+          "start_time": 18.8,
+          "end_time": 20.7
+        },
+        {
+          "label": "shoe",
+          "confidence": 0.773417055606842,
+          "start_time": 18.8,
+          "end_time": 20.7
+        },
+        {
+          "label": "pants",
+          "confidence": 0.6167421936988831,
+          "start_time": 18.8,
+          "end_time": 20.7
+        },
+        {
+          "label": "shoe",
+          "confidence": 0.5742424726486206,
+          "start_time": 18.8,
+          "end_time": 18.9
+        },
+        {
+          "label": "tableware",
+          "confidence": 0.5418364405632019,
+          "start_time": 18.9,
+          "end_time": 20.7
+        },
+        {
+          "label": "shoe",
+          "confidence": 0.5034046173095703,
+          "start_time": 18.9,
+          "end_time": 18.9
+        },
+        {
+          "label": "hat",
+          "confidence": 0.595619797706604,
+          "start_time": 19.0,
+          "end_time": 19.1
+        },
+        {
+          "label": "pants",
+          "confidence": 0.595409095287323,
+          "start_time": 19.0,
+          "end_time": 20.5
+        },
+        {
+          "label": "shoe",
+          "confidence": 0.5993678569793701,
+          "start_time": 19.9,
+          "end_time": 20.6
+        },
+        {
+          "label": "person",
+          "confidence": 0.7700738310813904,
+          "start_time": 20.0,
+          "end_time": 20.3
+        },
+        {
+          "label": "person",
+          "confidence": 0.9868398904800415,
+          "start_time": 20.8,
+          "end_time": 21.1
+        },
+        {
+          "label": "pants",
+          "confidence": 0.9434731602668762,
+          "start_time": 20.8,
+          "end_time": 20.8
+        },
+        {
+          "label": "pants",
+          "confidence": 0.8912653923034668,
+          "start_time": 20.8,
+          "end_time": 20.8
+        },
+        {
+          "label": "person",
+          "confidence": 0.8142556548118591,
+          "start_time": 20.8,
+          "end_time": 21.1
+        },
+        {
+          "label": "top",
+          "confidence": 0.8723760843276978,
+          "start_time": 20.8,
+          "end_time": 20.8
+        },
+        {
+          "label": "t-shirt",
+          "confidence": 0.8554285168647766,
+          "start_time": 20.8,
+          "end_time": 23.4
+        },
+        {
+          "label": "pants",
+          "confidence": 0.6610491275787354,
+          "start_time": 20.8,
+          "end_time": 20.8
+        },
+        {
+          "label": "footwear",
+          "confidence": 0.564187228679657,
+          "start_time": 20.8,
+          "end_time": 20.8
+        },
+        {
+          "label": "person",
+          "confidence": 0.9564308524131775,
+          "start_time": 21.2,
+          "end_time": 23.4
+        },
+        {
+          "label": "hat",
+          "confidence": 0.6022170186042786,
+          "start_time": 22.0,
+          "end_time": 23.2
+        },
+        {
+          "label": "person",
+          "confidence": 0.9636126756668091,
+          "start_time": 23.5,
+          "end_time": 25.7
+        },
+        {
+          "label": "t-shirt",
+          "confidence": 0.884352445602417,
+          "start_time": 23.5,
+          "end_time": 25.7
+        },
+        {
+          "label": "flower",
+          "confidence": 0.7700123190879822,
+          "start_time": 23.8,
+          "end_time": 25.6
+        },
+        {
+          "label": "flower",
+          "confidence": 0.6026317477226257,
+          "start_time": 23.8,
+          "end_time": 25.7
+        },
+        {
+          "label": "flower",
+          "confidence": 0.6950522661209106,
+          "start_time": 25.6,
+          "end_time": 25.7
+        },
+        {
+          "label": "person",
+          "confidence": 0.9509689807891846,
+          "start_time": 25.8,
+          "end_time": 27.3
+        },
+        {
+          "label": "t-shirt",
+          "confidence": 0.8894893527030945,
+          "start_time": 25.8,
+          "end_time": 27.3
+        },
+        {
+          "label": "hat",
+          "confidence": 0.6957308053970337,
+          "start_time": 25.8,
+          "end_time": 25.8
+        },
+        {
+          "label": "flower",
+          "confidence": 0.6221089363098145,
+          "start_time": 26.0,
+          "end_time": 27.3
+        },
+        {
+          "label": "flower",
+          "confidence": 0.6054911613464355,
+          "start_time": 26.0,
+          "end_time": 27.3
+        },
+        {
+          "label": "t-shirt",
+          "confidence": 0.8669039011001587,
+          "start_time": 27.4,
+          "end_time": 29.0
+        },
+        {
+          "label": "flower",
+          "confidence": 0.6606405973434448,
+          "start_time": 27.5,
+          "end_time": 29.0
+        },
+        {
+          "label": "person",
+          "confidence": 0.9959337115287781,
+          "start_time": 27.6,
+          "end_time": 29.0
+        },
+        {
+          "label": "flower",
+          "confidence": 0.5705097317695618,
+          "start_time": 27.9,
+          "end_time": 29.0
+        },
+        {
+          "label": "flower",
+          "confidence": 0.6379610896110535,
+          "start_time": 28.4,
+          "end_time": 29.0
+        },
+        {
+          "label": "t-shirt",
+          "confidence": 0.8931393027305603,
+          "start_time": 29.1,
+          "end_time": 31.9
+        },
+        {
+          "label": "person",
+          "confidence": 0.9612802863121033,
+          "start_time": 29.2,
+          "end_time": 31.9
+        },
+        {
+          "label": "hat",
+          "confidence": 0.6220704913139343,
+          "start_time": 29.3,
+          "end_time": 29.3
+        },
+        {
+          "label": "flower",
+          "confidence": 0.5678799152374268,
+          "start_time": 29.4,
+          "end_time": 30.0
+        },
+        {
+          "label": "flower",
+          "confidence": 0.6043977737426758,
+          "start_time": 30.0,
+          "end_time": 31.9
+        },
+        {
+          "label": "flower",
+          "confidence": 0.5735165476799011,
+          "start_time": 31.3,
+          "end_time": 31.9
+        },
+        {
+          "label": "t-shirt",
+          "confidence": 0.776054322719574,
+          "start_time": 32.0,
+          "end_time": 34.2
+        },
+        {
+          "label": "person",
+          "confidence": 0.9509329795837402,
+          "start_time": 32.1,
+          "end_time": 34.2
+        },
+        {
+          "label": "person",
+          "confidence": 0.9322232007980347,
+          "start_time": 32.1,
+          "end_time": 32.9
+        },
+        {
+          "label": "t-shirt",
+          "confidence": 0.7128508687019348,
+          "start_time": 32.2,
+          "end_time": 34.2
+        },
+        {
+          "label": "person",
+          "confidence": 0.8749022483825684,
+          "start_time": 32.2,
+          "end_time": 34.2
+        },
+        {
+          "label": "pants",
+          "confidence": 0.7336329817771912,
+          "start_time": 32.2,
+          "end_time": 34.2
+        },
+        {
+          "label": "scarf",
+          "confidence": 0.6837453842163086,
+          "start_time": 32.2,
+          "end_time": 34.2
+        },
+        {
+          "label": "dress",
+          "confidence": 0.6413044929504395,
+          "start_time": 32.2,
+          "end_time": 34.2
+        },
+        {
+          "label": "pants",
+          "confidence": 0.5668326616287231,
+          "start_time": 32.4,
+          "end_time": 34.2
+        },
+        {
+          "label": "person",
+          "confidence": 0.9949479699134827,
+          "start_time": 32.8,
+          "end_time": 34.2
+        },
+        {
+          "label": "t-shirt",
+          "confidence": 0.5138884782791138,
+          "start_time": 33.4,
+          "end_time": 33.4
+        },
+        {
+          "label": "clothing",
+          "confidence": 0.7534506320953369,
+          "start_time": 34.3,
+          "end_time": 36.8
+        },
+        {
+          "label": "person",
+          "confidence": 0.9511126279830933,
+          "start_time": 34.4,
+          "end_time": 36.8
+        },
+        {
+          "label": "person",
+          "confidence": 0.8969637155532837,
+          "start_time": 34.5,
+          "end_time": 36.8
+        },
+        {
+          "label": "clothing",
+          "confidence": 0.7274041771888733,
+          "start_time": 34.5,
+          "end_time": 36.8
+        },
+        {
+          "label": "clothing",
+          "confidence": 0.7012346982955933,
+          "start_time": 34.5,
+          "end_time": 36.8
+        },
+        {
+          "label": "glasses",
+          "confidence": 0.6044659614562988,
+          "start_time": 34.5,
+          "end_time": 34.5
+        },
+        {
+          "label": "person",
+          "confidence": 0.8233388066291809,
+          "start_time": 35.0,
+          "end_time": 36.8
+        },
+        {
+          "label": "person",
+          "confidence": 0.8403242230415344,
+          "start_time": 35.0,
+          "end_time": 36.8
+        },
+        {
+          "label": "clothing",
+          "confidence": 0.5070248246192932,
+          "start_time": 35.1,
+          "end_time": 35.1
+        },
+        {
+          "label": "person",
+          "confidence": 0.970719575881958,
+          "start_time": 36.9,
+          "end_time": 40.7
+        },
+        {
+          "label": "person",
+          "confidence": 0.9829351305961609,
+          "start_time": 36.9,
+          "end_time": 40.7
+        },
+        {
+          "label": "person",
+          "confidence": 0.9687047004699707,
+          "start_time": 36.9,
+          "end_time": 40.7
+        },
+        {
+          "label": "jeans",
+          "confidence": 0.5779740214347839,
+          "start_time": 36.9,
+          "end_time": 40.7
+        },
+        {
+          "label": "clothing",
+          "confidence": 0.5823483467102051,
+          "start_time": 36.9,
+          "end_time": 40.6
+        },
+        {
+          "label": "clothing",
+          "confidence": 0.6724424958229065,
+          "start_time": 36.9,
+          "end_time": 37.0
+        },
+        {
+          "label": "glasses",
+          "confidence": 0.7379661202430725,
+          "start_time": 37.0,
+          "end_time": 37.0
+        },
+        {
+          "label": "glasses",
+          "confidence": 0.6709858775138855,
+          "start_time": 37.0,
+          "end_time": 37.0
+        },
+        {
+          "label": "glasses",
+          "confidence": 0.6004435420036316,
+          "start_time": 37.0,
+          "end_time": 37.0
+        },
+        {
+          "label": "table",
+          "confidence": 0.5796329379081726,
+          "start_time": 37.4,
+          "end_time": 39.9
+        },
+        {
+          "label": "chair",
+          "confidence": 0.6956486701965332,
+          "start_time": 37.5,
+          "end_time": 40.7
+        },
+        {
+          "label": "clothing",
+          "confidence": 0.5463111996650696,
+          "start_time": 37.6,
+          "end_time": 40.7
+        },
+        {
+          "label": "pants",
+          "confidence": 0.5718121528625488,
+          "start_time": 37.9,
+          "end_time": 40.7
+        },
+        {
+          "label": "jeans",
+          "confidence": 0.5500783920288086,
+          "start_time": 38.6,
+          "end_time": 40.7
+        },
+        {
+          "label": "clothing",
+          "confidence": 0.605895459651947,
+          "start_time": 40.6,
+          "end_time": 40.7
+        },
+        {
+          "label": "person",
+          "confidence": 0.9963030219078064,
+          "start_time": 40.8,
+          "end_time": 44.7
+        },
+        {
+          "label": "person",
+          "confidence": 0.987748384475708,
+          "start_time": 40.8,
+          "end_time": 44.7
+        },
+        {
+          "label": "person",
+          "confidence": 0.9935489892959595,
+          "start_time": 40.8,
+          "end_time": 44.7
+        },
+        {
+          "label": "person",
+          "confidence": 0.9624863266944885,
+          "start_time": 40.8,
+          "end_time": 44.7
+        },
+        {
+          "label": "person",
+          "confidence": 0.8221755623817444,
+          "start_time": 40.8,
+          "end_time": 41.1
+        },
+        {
+          "label": "pants",
+          "confidence": 0.699122428894043,
+          "start_time": 40.8,
+          "end_time": 44.4
+        },
+        {
+          "label": "jeans",
+          "confidence": 0.7969361543655396,
+          "start_time": 40.8,
+          "end_time": 44.6
+        },
+        {
+          "label": "chair",
+          "confidence": 0.8165376782417297,
+          "start_time": 40.8,
+          "end_time": 44.4
+        },
+        {
+          "label": "top",
+          "confidence": 0.7626618146896362,
+          "start_time": 40.8,
+          "end_time": 51.4
+        },
+        {
+          "label": "top",
+          "confidence": 0.6884632706642151,
+          "start_time": 40.8,
+          "end_time": 44.8
+        },
+        {
+          "label": "hat",
+          "confidence": 0.6396125555038452,
+          "start_time": 40.8,
+          "end_time": 44.3
+        },
+        {
+          "label": "top",
+          "confidence": 0.643564760684967,
+          "start_time": 40.8,
+          "end_time": 44.4
+        },
+        {
+          "label": "pants",
+          "confidence": 0.562126636505127,
+          "start_time": 40.8,
+          "end_time": 41.0
+        },
+        {
+          "label": "pants",
+          "confidence": 0.5713261961936951,
+          "start_time": 40.8,
+          "end_time": 44.6
+        },
+        {
+          "label": "clothing",
+          "confidence": 0.6250667572021484,
+          "start_time": 41.1,
+          "end_time": 41.6
+        },
+        {
+          "label": "chair",
+          "confidence": 0.5166447162628174,
+          "start_time": 41.1,
+          "end_time": 42.7
+        },
+        {
+          "label": "pants",
+          "confidence": 0.5371875762939453,
+          "start_time": 41.3,
+          "end_time": 44.4
+        },
+        {
+          "label": "person",
+          "confidence": 0.8963713645935059,
+          "start_time": 42.4,
+          "end_time": 47.9
+        },
+        {
+          "label": "top",
+          "confidence": 0.5959817171096802,
+          "start_time": 42.8,
+          "end_time": 44.6
+        },
+        {
+          "label": "person",
+          "confidence": 0.834549605846405,
+          "start_time": 44.6,
+          "end_time": 44.7
+        },
+        {
+          "label": "glasses",
+          "confidence": 0.6330633163452148,
+          "start_time": 44.9,
+          "end_time": 44.9
+        },
+        {
+          "label": "tableware",
+          "confidence": 0.7453742623329163,
+          "start_time": 45.0,
+          "end_time": 47.8
+        },
+        {
+          "label": "shoe",
+          "confidence": 0.5544592142105103,
+          "start_time": 45.3,
+          "end_time": 45.9
+        },
+        {
+          "label": "glasses",
+          "confidence": 0.6283642053604126,
+          "start_time": 45.9,
+          "end_time": 47.5
+        },
+        {
+          "label": "person",
+          "confidence": 0.9854637980461121,
+          "start_time": 47.5,
+          "end_time": 51.1
+        },
+        {
+          "label": "top",
+          "confidence": 0.8038859367370605,
+          "start_time": 47.5,
+          "end_time": 51.0
+        },
+        {
+          "label": "person",
+          "confidence": 0.9751216769218445,
+          "start_time": 47.6,
+          "end_time": 51.1
+        },
+        {
+          "label": "top",
+          "confidence": 0.6813214421272278,
+          "start_time": 47.6,
+          "end_time": 51.1
+        },
+        {
+          "label": "pants",
+          "confidence": 0.6542394757270813,
+          "start_time": 47.6,
+          "end_time": 51.1
+        },
+        {
+          "label": "hat",
+          "confidence": 0.6316367387771606,
+          "start_time": 47.6,
+          "end_time": 51.0
+        },
+        {
+          "label": "person",
+          "confidence": 0.9599608182907104,
+          "start_time": 47.7,
+          "end_time": 51.2
+        },
+        {
+          "label": "person",
+          "confidence": 0.8415900468826294,
+          "start_time": 47.7,
+          "end_time": 47.9
+        },
+        {
+          "label": "person",
+          "confidence": 0.979559600353241,
+          "start_time": 47.7,
+          "end_time": 51.5
+        },
+        {
+          "label": "top",
+          "confidence": 0.6838914752006531,
+          "start_time": 47.7,
+          "end_time": 48.3
+        },
+        {
+          "label": "clothing",
+          "confidence": 0.5676827430725098,
+          "start_time": 47.7,
+          "end_time": 48.5
+        },
+        {
+          "label": "pants",
+          "confidence": 0.6327453851699829,
+          "start_time": 47.8,
+          "end_time": 51.0
+        },
+        {
+          "label": "person",
+          "confidence": 0.9703212380409241,
+          "start_time": 48.0,
+          "end_time": 54.6
+        },
+        {
+          "label": "top",
+          "confidence": 0.6646357178688049,
+          "start_time": 48.0,
+          "end_time": 51.2
+        },
+        {
+          "label": "dress",
+          "confidence": 0.6401931643486023,
+          "start_time": 48.1,
+          "end_time": 51.1
+        },
+        {
+          "label": "top",
+          "confidence": 0.75300532579422,
+          "start_time": 48.3,
+          "end_time": 51.4
+        },
+        {
+          "label": "person",
+          "confidence": 0.9633020162582397,
+          "start_time": 48.4,
+          "end_time": 51.5
+        },
+        {
+          "label": "food",
+          "confidence": 0.5180110931396484,
+          "start_time": 50.2,
+          "end_time": 51.3
+        },
+        {
+          "label": "person",
+          "confidence": 0.8153313398361206,
+          "start_time": 50.4,
+          "end_time": 51.2
+        },
+        {
+          "label": "clothing",
+          "confidence": 0.5135446190834045,
+          "start_time": 50.5,
+          "end_time": 50.5
+        },
+        {
+          "label": "dress",
+          "confidence": 0.7465462684631348,
+          "start_time": 51.1,
+          "end_time": 54.6
+        },
+        {
+          "label": "pants",
+          "confidence": 0.896192193031311,
+          "start_time": 51.1,
+          "end_time": 54.6
+        },
+        {
+          "label": "person",
+          "confidence": 0.9550021290779114,
+          "start_time": 51.2,
+          "end_time": 51.5
+        },
+        {
+          "label": "person",
+          "confidence": 0.9934518933296204,
+          "start_time": 51.2,
+          "end_time": 54.6
+        },
+        {
+          "label": "person",
+          "confidence": 0.8468579649925232,
+          "start_time": 51.2,
+          "end_time": 51.5
+        },
+        {
+          "label": "top",
+          "confidence": 0.805885910987854,
+          "start_time": 51.2,
+          "end_time": 54.6
+        },
+        {
+          "label": "top",
+          "confidence": 0.746364414691925,
+          "start_time": 51.2,
+          "end_time": 54.6
+        },
+        {
+          "label": "person",
+          "confidence": 0.9891703128814697,
+          "start_time": 51.3,
+          "end_time": 54.6
+        },
+        {
+          "label": "pants",
+          "confidence": 0.9032768607139587,
+          "start_time": 51.4,
+          "end_time": 54.6
+        },
+        {
+          "label": "clothing",
+          "confidence": 0.5908460021018982,
+          "start_time": 52.0,
+          "end_time": 54.6
+        },
+        {
+          "label": "top",
+          "confidence": 0.6182954907417297,
+          "start_time": 52.6,
+          "end_time": 52.6
+        },
+        {
+          "label": "footwear",
+          "confidence": 0.5466984510421753,
+          "start_time": 53.0,
+          "end_time": 53.0
+        },
+        {
+          "label": "footwear",
+          "confidence": 0.5369449257850647,
+          "start_time": 54.1,
+          "end_time": 54.3
+        },
+        {
+          "label": "footwear",
+          "confidence": 0.5440483093261719,
+          "start_time": 54.4,
+          "end_time": 54.6
+        },
+        {
+          "label": "person",
+          "confidence": 0.9886044859886169,
+          "start_time": 54.7,
+          "end_time": 56.2
+        },
+        {
+          "label": "license plate",
+          "confidence": 0.672091007232666,
+          "start_time": 54.7,
+          "end_time": 56.2
+        },
+        {
+          "label": "t-shirt",
+          "confidence": 0.814243495464325,
+          "start_time": 54.8,
+          "end_time": 56.2
+        },
+        {
+          "label": "car",
+          "confidence": 0.8215985298156738,
+          "start_time": 55.4,
+          "end_time": 56.2
+        },
+        {
+          "label": "person",
+          "confidence": 0.9876698851585388,
+          "start_time": 56.3,
+          "end_time": 58.2
+        },
+        {
+          "label": "car",
+          "confidence": 0.8607925176620483,
+          "start_time": 56.3,
+          "end_time": 58.2
+        },
+        {
+          "label": "wheel",
+          "confidence": 0.8231419920921326,
+          "start_time": 56.3,
+          "end_time": 58.2
+        },
+        {
+          "label": "clothing",
+          "confidence": 0.6843600869178772,
+          "start_time": 56.4,
+          "end_time": 58.2
+        },
+        {
+          "label": "person",
+          "confidence": 0.8723703622817993,
+          "start_time": 58.3,
+          "end_time": 58.4
+        },
+        {
+          "label": "clothing",
+          "confidence": 0.6773481369018555,
+          "start_time": 58.3,
+          "end_time": 58.8
+        },
+        {
+          "label": "wheel",
+          "confidence": 0.5560849905014038,
+          "start_time": 58.3,
+          "end_time": 58.3
+        },
+        {
+          "label": "car",
+          "confidence": 0.861676812171936,
+          "start_time": 58.4,
+          "end_time": 58.7
+        },
+        {
+          "label": "person",
+          "confidence": 0.8704695105552673,
+          "start_time": 58.8,
+          "end_time": 61.4
+        },
+        {
+          "label": "person",
+          "confidence": 0.9488821625709534,
+          "start_time": 58.8,
+          "end_time": 61.4
+        },
+        {
+          "label": "person",
+          "confidence": 0.9422610998153687,
+          "start_time": 58.8,
+          "end_time": 61.4
+        },
+        {
+          "label": "clothing",
+          "confidence": 0.6750732064247131,
+          "start_time": 58.8,
+          "end_time": 61.4
+        },
+        {
+          "label": "clothing",
+          "confidence": 0.6979215145111084,
+          "start_time": 58.8,
+          "end_time": 61.4
+        },
+        {
+          "label": "clothing",
+          "confidence": 0.7046197056770325,
+          "start_time": 58.8,
+          "end_time": 61.4
+        },
+        {
+          "label": "clothing",
+          "confidence": 0.7316647171974182,
+          "start_time": 58.8,
+          "end_time": 61.4
+        },
+        {
+          "label": "person",
+          "confidence": 0.9505362510681152,
+          "start_time": 58.9,
+          "end_time": 61.4
+        },
+        {
+          "label": "clothing",
+          "confidence": 0.7393695712089539,
+          "start_time": 59.3,
+          "end_time": 61.4
+        },
+        {
+          "label": "hat",
+          "confidence": 0.5744810700416565,
+          "start_time": 60.1,
+          "end_time": 61.3
+        },
+        {
+          "label": "outerwear",
+          "confidence": 0.6803064346313477,
+          "start_time": 60.2,
+          "end_time": 61.3
+        },
+        {
+          "label": "clothing",
+          "confidence": 0.554715633392334,
+          "start_time": 60.7,
+          "end_time": 61.4
+        },
+        {
+          "label": "pants",
+          "confidence": 0.7566360831260681,
+          "start_time": 61.5,
+          "end_time": 67.3
+        },
+        {
+          "label": "pants",
+          "confidence": 0.9091454744338989,
+          "start_time": 61.5,
+          "end_time": 64.1
+        },
+        {
+          "label": "top",
+          "confidence": 0.8954241871833801,
+          "start_time": 61.5,
+          "end_time": 64.0
+        },
+        {
+          "label": "person",
+          "confidence": 0.9708583354949951,
+          "start_time": 61.5,
+          "end_time": 64.3
+        },
+        {
+          "label": "top",
+          "confidence": 0.8352692723274231,
+          "start_time": 61.5,
+          "end_time": 63.7
+        },
+        {
+          "label": "person",
+          "confidence": 0.9744614362716675,
+          "start_time": 61.5,
+          "end_time": 64.4
+        },
+        {
+          "label": "shoe",
+          "confidence": 0.5760403871536255,
+          "start_time": 61.5,
+          "end_time": 63.7
+        },
+        {
+          "label": "pants",
+          "confidence": 0.6070952415466309,
+          "start_time": 61.5,
+          "end_time": 63.8
+        },
+        {
+          "label": "person",
+          "confidence": 0.8936859965324402,
+          "start_time": 61.6,
+          "end_time": 63.9
+        },
+        {
+          "label": "person",
+          "confidence": 0.8334060311317444,
+          "start_time": 61.6,
+          "end_time": 63.6
+        },
+        {
+          "label": "pants",
+          "confidence": 0.5717055201530457,
+          "start_time": 61.6,
+          "end_time": 63.6
+        },
+        {
+          "label": "hat",
+          "confidence": 0.5631116628646851,
+          "start_time": 62.0,
+          "end_time": 62.1
+        },
+        {
+          "label": "hat",
+          "confidence": 0.6402649879455566,
+          "start_time": 63.0,
+          "end_time": 63.6
+        },
+        {
+          "label": "hat",
+          "confidence": 0.5734261870384216,
+          "start_time": 63.0,
+          "end_time": 63.9
+        },
+        {
+          "label": "hat",
+          "confidence": 0.5522465705871582,
+          "start_time": 63.6,
+          "end_time": 63.6
+        },
+        {
+          "label": "shoe",
+          "confidence": 0.651454508304596,
+          "start_time": 63.8,
+          "end_time": 63.8
+        },
+        {
+          "label": "person",
+          "confidence": 0.9958748817443848,
+          "start_time": 63.9,
+          "end_time": 68.0
+        },
+        {
+          "label": "pants",
+          "confidence": 0.8091267943382263,
+          "start_time": 63.9,
+          "end_time": 69.9
+        },
+        {
+          "label": "shorts",
+          "confidence": 0.6065095067024231,
+          "start_time": 64.0,
+          "end_time": 67.2
+        },
+        {
+          "label": "person",
+          "confidence": 0.793522298336029,
+          "start_time": 64.0,
+          "end_time": 65.5
+        },
+        {
+          "label": "sneakers",
+          "confidence": 0.6834486722946167,
+          "start_time": 64.1,
+          "end_time": 64.1
+        },
+        {
+          "label": "flowerpot",
+          "confidence": 0.5313077569007874,
+          "start_time": 64.2,
+          "end_time": 64.4
+        },
+        {
+          "label": "person",
+          "confidence": 0.8496260643005371,
+          "start_time": 64.3,
+          "end_time": 67.3
+        },
+        {
+          "label": "person",
+          "confidence": 0.8619893193244934,
+          "start_time": 64.8,
+          "end_time": 67.2
+        },
+        {
+          "label": "top",
+          "confidence": 0.6671084761619568,
+          "start_time": 65.5,
+          "end_time": 69.9
+        },
+        {
+          "label": "shorts",
+          "confidence": 0.6358124017715454,
+          "start_time": 66.7,
+          "end_time": 67.8
+        },
+        {
+          "label": "flowerpot",
+          "confidence": 0.5455160140991211,
+          "start_time": 66.9,
+          "end_time": 67.3
+        },
+        {
+          "label": "hat",
+          "confidence": 0.6457824110984802,
+          "start_time": 67.3,
+          "end_time": 67.5
+        },
+        {
+          "label": "footwear",
+          "confidence": 0.550675630569458,
+          "start_time": 67.4,
+          "end_time": 67.4
+        },
+        {
+          "label": "person",
+          "confidence": 0.976489245891571,
+          "start_time": 67.6,
+          "end_time": 69.9
+        },
+        {
+          "label": "hat",
+          "confidence": 0.6163403391838074,
+          "start_time": 67.6,
+          "end_time": 68.2
+        },
+        {
+          "label": "clothing",
+          "confidence": 0.5618850588798523,
+          "start_time": 67.7,
+          "end_time": 69.9
+        },
+        {
+          "label": "person",
+          "confidence": 0.8728986978530884,
+          "start_time": 68.0,
+          "end_time": 69.6
+        },
+        {
+          "label": "person",
+          "confidence": 0.9883441925048828,
+          "start_time": 68.0,
+          "end_time": 69.9
+        },
+        {
+          "label": "dress",
+          "confidence": 0.5197859406471252,
+          "start_time": 68.4,
+          "end_time": 68.7
+        },
+        {
+          "label": "person",
+          "confidence": 0.9975103735923767,
+          "start_time": 70.0,
+          "end_time": 71.6
+        },
+        {
+          "label": "person",
+          "confidence": 0.9481844305992126,
+          "start_time": 70.0,
+          "end_time": 71.6
+        },
+        {
+          "label": "person",
+          "confidence": 0.9231278300285339,
+          "start_time": 70.0,
+          "end_time": 71.6
+        },
+        {
+          "label": "pants",
+          "confidence": 0.8265814781188965,
+          "start_time": 70.0,
+          "end_time": 71.6
+        },
+        {
+          "label": "person",
+          "confidence": 0.793346643447876,
+          "start_time": 70.0,
+          "end_time": 71.5
+        },
+        {
+          "label": "clothing",
+          "confidence": 0.6245864629745483,
+          "start_time": 70.0,
+          "end_time": 71.6
+        },
+        {
+          "label": "shirt",
+          "confidence": 0.6038354635238647,
+          "start_time": 70.0,
+          "end_time": 71.6
+        },
+        {
+          "label": "clothing",
+          "confidence": 0.5824772119522095,
+          "start_time": 70.0,
+          "end_time": 71.6
+        },
+        {
+          "label": "person",
+          "confidence": 0.920619010925293,
+          "start_time": 71.2,
+          "end_time": 71.6
+        },
+        {
+          "label": "person",
+          "confidence": 0.7541464567184448,
+          "start_time": 71.6,
+          "end_time": 71.6
+        },
+        {
+          "label": "person",
+          "confidence": 0.9755224585533142,
+          "start_time": 71.7,
+          "end_time": 73.3
+        },
+        {
+          "label": "person",
+          "confidence": 0.9611561894416809,
+          "start_time": 71.7,
+          "end_time": 73.3
+        },
+        {
+          "label": "person",
+          "confidence": 0.9364075660705566,
+          "start_time": 71.7,
+          "end_time": 73.3
+        },
+        {
+          "label": "shirt",
+          "confidence": 0.7439604997634888,
+          "start_time": 71.7,
+          "end_time": 73.3
+        },
+        {
+          "label": "hat",
+          "confidence": 0.6774289608001709,
+          "start_time": 71.7,
+          "end_time": 73.3
+        },
+        {
+          "label": "headgear",
+          "confidence": 0.5959460735321045,
+          "start_time": 72.0,
+          "end_time": 72.7
+        },
+        {
+          "label": "clothing",
+          "confidence": 0.7299998998641968,
+          "start_time": 72.6,
+          "end_time": 73.3
+        },
+        {
+          "label": "clothing",
+          "confidence": 0.6832161545753479,
+          "start_time": 72.6,
+          "end_time": 73.3
+        },
+        {
+          "label": "clothing",
+          "confidence": 0.6792290806770325,
+          "start_time": 72.6,
+          "end_time": 73.3
+        },
+        {
+          "label": "glasses",
+          "confidence": 0.6219909191131592,
+          "start_time": 72.9,
+          "end_time": 73.3
+        },
+        {
+          "label": "hat",
+          "confidence": 0.5480533838272095,
+          "start_time": 73.0,
+          "end_time": 73.3
+        },
+        {
+          "label": "pants",
+          "confidence": 0.9290170669555664,
+          "start_time": 73.4,
+          "end_time": 75.5
+        },
+        {
+          "label": "pants",
+          "confidence": 0.9081515669822693,
+          "start_time": 73.4,
+          "end_time": 75.5
+        },
+        {
+          "label": "person",
+          "confidence": 0.9845194220542908,
+          "start_time": 73.4,
+          "end_time": 75.5
+        },
+        {
+          "label": "person",
+          "confidence": 0.9869660139083862,
+          "start_time": 73.4,
+          "end_time": 75.5
+        },
+        {
+          "label": "top",
+          "confidence": 0.8344111442565918,
+          "start_time": 73.4,
+          "end_time": 75.5
+        },
+        {
+          "label": "top",
+          "confidence": 0.6432468891143799,
+          "start_time": 73.4,
+          "end_time": 75.5
+        },
+        {
+          "label": "shorts",
+          "confidence": 0.5836832523345947,
+          "start_time": 73.4,
+          "end_time": 74.6
+        },
+        {
+          "label": "top",
+          "confidence": 0.6065213084220886,
+          "start_time": 73.4,
+          "end_time": 75.5
+        },
+        {
+          "label": "person",
+          "confidence": 0.9485888481140137,
+          "start_time": 73.6,
+          "end_time": 75.5
+        },
+        {
+          "label": "hat",
+          "confidence": 0.577660322189331,
+          "start_time": 73.8,
+          "end_time": 75.5
+        },
+        {
+          "label": "person",
+          "confidence": 0.7602348327636719,
+          "start_time": 74.4,
+          "end_time": 75.1
+        },
+        {
+          "label": "shorts",
+          "confidence": 0.5072028040885925,
+          "start_time": 75.5,
+          "end_time": 75.5
+        },
+        {
+          "label": "person",
+          "confidence": 0.9974586367607117,
+          "start_time": 75.6,
+          "end_time": 75.9
+        },
+        {
+          "label": "person",
+          "confidence": 0.9947563409805298,
+          "start_time": 75.6,
+          "end_time": 75.9
+        },
+        {
+          "label": "person",
+          "confidence": 0.9883402585983276,
+          "start_time": 75.6,
+          "end_time": 75.9
+        },
+        {
+          "label": "person",
+          "confidence": 0.9950709342956543,
+          "start_time": 75.6,
+          "end_time": 80.0
+        },
+        {
+          "label": "person",
+          "confidence": 0.9526866674423218,
+          "start_time": 75.6,
+          "end_time": 75.8
+        },
+        {
+          "label": "top",
+          "confidence": 0.6459269523620605,
+          "start_time": 75.6,
+          "end_time": 80.0
+        },
+        {
+          "label": "pants",
+          "confidence": 0.9312258362770081,
+          "start_time": 75.6,
+          "end_time": 80.0
+        },
+        {
+          "label": "pants",
+          "confidence": 0.9329484105110168,
+          "start_time": 75.6,
+          "end_time": 80.0
+        },
+        {
+          "label": "top",
+          "confidence": 0.7919033169746399,
+          "start_time": 75.6,
+          "end_time": 80.0
+        },
+        {
+          "label": "pants",
+          "confidence": 0.9313355088233948,
+          "start_time": 75.6,
+          "end_time": 80.0
+        },
+        {
+          "label": "top",
+          "confidence": 0.6781284213066101,
+          "start_time": 75.6,
+          "end_time": 80.0
+        },
+        {
+          "label": "top",
+          "confidence": 0.8040171265602112,
+          "start_time": 75.6,
+          "end_time": 80.0
+        },
+        {
+          "label": "hat",
+          "confidence": 0.5939604043960571,
+          "start_time": 75.6,
+          "end_time": 75.8
+        },
+        {
+          "label": "hat",
+          "confidence": 0.595552921295166,
+          "start_time": 75.6,
+          "end_time": 75.9
+        },
+        {
+          "label": "hat",
+          "confidence": 0.5544083118438721,
+          "start_time": 75.6,
+          "end_time": 75.9
+        },
+        {
+          "label": "top",
+          "confidence": 0.8044502139091492,
+          "start_time": 75.7,
+          "end_time": 80.0
+        },
+        {
+          "label": "person",
+          "confidence": 0.9781973361968994,
+          "start_time": 75.7,
+          "end_time": 80.0
+        },
+        {
+          "label": "person",
+          "confidence": 0.9891161918640137,
+          "start_time": 75.7,
+          "end_time": 80.0
+        },
+        {
+          "label": "person",
+          "confidence": 0.9916626214981079,
+          "start_time": 75.8,
+          "end_time": 80.0
+        },
+        {
+          "label": "person",
+          "confidence": 0.9714398384094238,
+          "start_time": 75.8,
+          "end_time": 80.0
+        },
+        {
+          "label": "person",
+          "confidence": 0.9071118235588074,
+          "start_time": 75.8,
+          "end_time": 75.9
+        },
+        {
+          "label": "car",
+          "confidence": 0.7403538227081299,
+          "start_time": 77.6,
+          "end_time": 77.9
+        },
+        {
+          "label": "car",
+          "confidence": 0.7533127069473267,
+          "start_time": 78.8,
+          "end_time": 79.7
+        },
+        {
+          "label": "tire",
+          "confidence": 0.5284622311592102,
+          "start_time": 79.4,
+          "end_time": 80.0
+        },
+        {
+          "label": "person",
+          "confidence": 0.9768517017364502,
+          "start_time": 80.1,
+          "end_time": 82.9
+        },
+        {
+          "label": "person",
+          "confidence": 0.9841074347496033,
+          "start_time": 80.1,
+          "end_time": 82.9
+        },
+        {
+          "label": "person",
+          "confidence": 0.9834819436073303,
+          "start_time": 80.1,
+          "end_time": 82.9
+        },
+        {
+          "label": "person",
+          "confidence": 0.958480179309845,
+          "start_time": 80.1,
+          "end_time": 82.9
+        },
+        {
+          "label": "jeans",
+          "confidence": 0.7395994067192078,
+          "start_time": 80.1,
+          "end_time": 82.9
+        },
+        {
+          "label": "pants",
+          "confidence": 0.7422459125518799,
+          "start_time": 80.1,
+          "end_time": 82.9
+        },
+        {
+          "label": "jeans",
+          "confidence": 0.6805411577224731,
+          "start_time": 80.1,
+          "end_time": 82.9
+        },
+        {
+          "label": "dress",
+          "confidence": 0.6828000545501709,
+          "start_time": 80.1,
+          "end_time": 82.9
+        },
+        {
+          "label": "top",
+          "confidence": 0.5991092920303345,
+          "start_time": 80.1,
+          "end_time": 82.9
+        },
+        {
+          "label": "top",
+          "confidence": 0.6827048659324646,
+          "start_time": 80.4,
+          "end_time": 82.9
+        },
+        {
+          "label": "person",
+          "confidence": 0.9170283079147339,
+          "start_time": 80.8,
+          "end_time": 81.9
+        },
+        {
+          "label": "top",
+          "confidence": 0.5115736126899719,
+          "start_time": 80.9,
+          "end_time": 82.0
+        },
+        {
+          "label": "top",
+          "confidence": 0.6198937892913818,
+          "start_time": 81.0,
+          "end_time": 82.9
+        },
+        {
+          "label": "car",
+          "confidence": 0.8040737509727478,
+          "start_time": 81.2,
+          "end_time": 82.7
+        },
+        {
+          "label": "clothing",
+          "confidence": 0.5726436972618103,
+          "start_time": 81.6,
+          "end_time": 81.8
+        },
+        {
+          "label": "clothing",
+          "confidence": 0.5472545623779297,
+          "start_time": 81.6,
+          "end_time": 81.9
+        },
+        {
+          "label": "luggage & bags",
+          "confidence": 0.6191196441650391,
+          "start_time": 81.9,
+          "end_time": 82.8
+        },
+        {
+          "label": "person",
+          "confidence": 0.9418081641197205,
+          "start_time": 83.0,
+          "end_time": 85.4
+        },
+        {
+          "label": "person",
+          "confidence": 0.9078865647315979,
+          "start_time": 83.0,
+          "end_time": 83.1
+        },
+        {
+          "label": "person",
+          "confidence": 0.8591722846031189,
+          "start_time": 83.0,
+          "end_time": 83.1
+        },
+        {
+          "label": "person",
+          "confidence": 0.9227396845817566,
+          "start_time": 83.0,
+          "end_time": 85.4
+        },
+        {
+          "label": "jeans",
+          "confidence": 0.631434440612793,
+          "start_time": 83.0,
+          "end_time": 83.5
+        },
+        {
+          "label": "jeans",
+          "confidence": 0.6799938678741455,
+          "start_time": 83.0,
+          "end_time": 83.0
+        },
+        {
+          "label": "pants",
+          "confidence": 0.6624423861503601,
+          "start_time": 83.0,
+          "end_time": 83.0
+        },
+        {
+          "label": "person",
+          "confidence": 0.8705823421478271,
+          "start_time": 83.5,
+          "end_time": 85.4
+        },
+        {
+          "label": "clothing",
+          "confidence": 0.7237895131111145,
+          "start_time": 83.5,
+          "end_time": 85.4
+        },
+        {
+          "label": "clothing",
+          "confidence": 0.6368290185928345,
+          "start_time": 83.5,
+          "end_time": 85.4
+        },
+        {
+          "label": "person",
+          "confidence": 0.8103526830673218,
+          "start_time": 83.6,
+          "end_time": 85.4
+        },
+        {
+          "label": "person",
+          "confidence": 0.7985897064208984,
+          "start_time": 83.6,
+          "end_time": 85.4
+        },
+        {
+          "label": "clothing",
+          "confidence": 0.6469991207122803,
+          "start_time": 83.9,
+          "end_time": 85.4
+        },
+        {
+          "label": "clothing",
+          "confidence": 0.6738346815109253,
+          "start_time": 83.9,
+          "end_time": 85.4
+        },
+        {
+          "label": "person",
+          "confidence": 0.8143629431724548,
+          "start_time": 84.0,
+          "end_time": 85.1
+        },
+        {
+          "label": "person",
+          "confidence": 0.7915967702865601,
+          "start_time": 84.7,
+          "end_time": 85.2
+        },
+        {
+          "label": "person",
+          "confidence": 0.8539183735847473,
+          "start_time": 85.5,
+          "end_time": 85.9
+        },
+        {
+          "label": "person",
+          "confidence": 0.8085458278656006,
+          "start_time": 85.5,
+          "end_time": 85.7
+        },
+        {
+          "label": "clothing",
+          "confidence": 0.5901709794998169,
+          "start_time": 85.5,
+          "end_time": 85.7
+        },
+        {
+          "label": "clothing",
+          "confidence": 0.5853050351142883,
+          "start_time": 85.5,
+          "end_time": 85.7
+        },
+        {
+          "label": "person",
+          "confidence": 0.8713839650154114,
+          "start_time": 85.6,
+          "end_time": 85.8
+        },
+        {
+          "label": "person",
+          "confidence": 0.7904026508331299,
+          "start_time": 85.6,
+          "end_time": 85.6
+        },
+        {
+          "label": "clothing",
+          "confidence": 0.6693894267082214,
+          "start_time": 85.7,
+          "end_time": 88.2
+        },
+        {
+          "label": "clothing",
+          "confidence": 0.6902327537536621,
+          "start_time": 85.7,
+          "end_time": 88.2
+        },
+        {
+          "label": "glasses",
+          "confidence": 0.6851981282234192,
+          "start_time": 85.8,
+          "end_time": 88.2
+        },
+        {
+          "label": "person",
+          "confidence": 0.877324104309082,
+          "start_time": 85.8,
+          "end_time": 88.2
+        },
+        {
+          "label": "person",
+          "confidence": 0.8423383235931396,
+          "start_time": 85.8,
+          "end_time": 85.9
+        },
+        {
+          "label": "glasses",
+          "confidence": 0.6441197991371155,
+          "start_time": 85.9,
+          "end_time": 86.1
+        },
+        {
+          "label": "person",
+          "confidence": 0.9784525632858276,
+          "start_time": 86.0,
+          "end_time": 88.2
+        },
+        {
+          "label": "glasses",
+          "confidence": 0.6232738494873047,
+          "start_time": 87.9,
+          "end_time": 87.9
+        },
+        {
+          "label": "person",
+          "confidence": 0.9716606140136719,
+          "start_time": 88.5,
+          "end_time": 90.4
+        },
+        {
+          "label": "person",
+          "confidence": 0.9787303805351257,
+          "start_time": 88.5,
+          "end_time": 90.4
+        },
+        {
+          "label": "person",
+          "confidence": 0.980927586555481,
+          "start_time": 88.5,
+          "end_time": 90.4
+        },
+        {
+          "label": "person",
+          "confidence": 0.9787085652351379,
+          "start_time": 88.5,
+          "end_time": 90.4
+        },
+        {
+          "label": "pants",
+          "confidence": 0.8617925643920898,
+          "start_time": 88.5,
+          "end_time": 90.4
+        },
+        {
+          "label": "person",
+          "confidence": 0.9741529822349548,
+          "start_time": 88.5,
+          "end_time": 90.4
+        },
+        {
+          "label": "top",
+          "confidence": 0.8147174715995789,
+          "start_time": 88.5,
+          "end_time": 90.4
+        },
+        {
+          "label": "pants",
+          "confidence": 0.8420277833938599,
+          "start_time": 88.5,
+          "end_time": 90.4
+        },
+        {
+          "label": "top",
+          "confidence": 0.8068727850914001,
+          "start_time": 88.5,
+          "end_time": 90.4
+        },
+        {
+          "label": "top",
+          "confidence": 0.818422794342041,
+          "start_time": 88.5,
+          "end_time": 90.4
+        },
+        {
+          "label": "jeans",
+          "confidence": 0.7865577936172485,
+          "start_time": 88.5,
+          "end_time": 90.4
+        },
+        {
+          "label": "person",
+          "confidence": 0.9469727873802185,
+          "start_time": 88.5,
+          "end_time": 90.4
+        },
+        {
+          "label": "top",
+          "confidence": 0.7985941171646118,
+          "start_time": 88.5,
+          "end_time": 90.4
+        },
+        {
+          "label": "pants",
+          "confidence": 0.8411952257156372,
+          "start_time": 88.5,
+          "end_time": 90.4
+        },
+        {
+          "label": "dress",
+          "confidence": 0.8093370795249939,
+          "start_time": 88.6,
+          "end_time": 90.4
+        },
+        {
+          "label": "dress",
+          "confidence": 0.5721935033798218,
+          "start_time": 88.8,
+          "end_time": 90.4
+        },
+        {
+          "label": "person",
+          "confidence": 0.80404132604599,
+          "start_time": 89.6,
+          "end_time": 89.9
+        },
+        {
+          "label": "clothing",
+          "confidence": 0.6144111156463623,
+          "start_time": 89.6,
+          "end_time": 90.1
+        },
+        {
+          "label": "person",
+          "confidence": 0.9823166728019714,
+          "start_time": 90.6,
+          "end_time": 93.1
+        },
+        {
+          "label": "person",
+          "confidence": 0.9913820028305054,
+          "start_time": 90.7,
+          "end_time": 93.1
+        },
+        {
+          "label": "dress",
+          "confidence": 0.8867567777633667,
+          "start_time": 90.7,
+          "end_time": 93.1
+        },
+        {
+          "label": "person",
+          "confidence": 0.9937363266944885,
+          "start_time": 90.7,
+          "end_time": 93.1
+        },
+        {
+          "label": "top",
+          "confidence": 0.8758718371391296,
+          "start_time": 90.7,
+          "end_time": 93.1
+        },
+        {
+          "label": "top",
+          "confidence": 0.8568276762962341,
+          "start_time": 90.7,
+          "end_time": 93.1
+        },
+        {
+          "label": "person",
+          "confidence": 0.9888226985931396,
+          "start_time": 90.7,
+          "end_time": 93.1
+        },
+        {
+          "label": "top",
+          "confidence": 0.8729599118232727,
+          "start_time": 90.7,
+          "end_time": 93.1
+        },
+        {
+          "label": "person",
+          "confidence": 0.8922438025474548,
+          "start_time": 90.7,
+          "end_time": 93.1
+        },
+        {
+          "label": "shorts",
+          "confidence": 0.8977229595184326,
+          "start_time": 90.7,
+          "end_time": 93.1
+        },
+        {
+          "label": "pants",
+          "confidence": 0.8784773349761963,
+          "start_time": 90.7,
+          "end_time": 93.1
+        },
+        {
+          "label": "pants",
+          "confidence": 0.8124143481254578,
+          "start_time": 90.7,
+          "end_time": 93.1
+        },
+        {
+          "label": "tire",
+          "confidence": 0.8381565809249878,
+          "start_time": 90.7,
+          "end_time": 93.1
+        },
+        {
+          "label": "person",
+          "confidence": 0.993958592414856,
+          "start_time": 90.8,
+          "end_time": 93.1
+        },
+        {
+          "label": "person",
+          "confidence": 0.9354341626167297,
+          "start_time": 90.8,
+          "end_time": 91.1
+        },
+        {
+          "label": "person",
+          "confidence": 0.7840709686279297,
+          "start_time": 90.8,
+          "end_time": 91.1
+        },
+        {
+          "label": "dress",
+          "confidence": 0.7002198100090027,
+          "start_time": 90.8,
+          "end_time": 93.1
+        },
+        {
+          "label": "luggage & bags",
+          "confidence": 0.6534600257873535,
+          "start_time": 90.8,
+          "end_time": 90.8
+        },
+        {
+          "label": "tire",
+          "confidence": 0.8392816185951233,
+          "start_time": 90.9,
+          "end_time": 93.1
+        },
+        {
+          "label": "dress",
+          "confidence": 0.6832460165023804,
+          "start_time": 90.9,
+          "end_time": 93.1
+        },
+        {
+          "label": "clothing",
+          "confidence": 0.5377252697944641,
+          "start_time": 91.0,
+          "end_time": 91.0
+        },
+        {
+          "label": "bicycle wheel",
+          "confidence": 0.7290483713150024,
+          "start_time": 92.0,
+          "end_time": 93.1
+        },
+        {
+          "label": "person",
+          "confidence": 0.9613884091377258,
+          "start_time": 93.2,
+          "end_time": 95.5
+        },
+        {
+          "label": "person",
+          "confidence": 0.9931944608688354,
+          "start_time": 93.2,
+          "end_time": 93.5
+        },
+        {
+          "label": "person",
+          "confidence": 0.993884265422821,
+          "start_time": 93.2,
+          "end_time": 95.5
+        },
+        {
+          "label": "person",
+          "confidence": 0.9871940016746521,
+          "start_time": 93.2,
+          "end_time": 93.5
+        },
+        {
+          "label": "person",
+          "confidence": 0.9606194496154785,
+          "start_time": 93.2,
+          "end_time": 93.9
+        },
+        {
+          "label": "person",
+          "confidence": 0.7989602088928223,
+          "start_time": 93.2,
+          "end_time": 93.5
+        },
+        {
+          "label": "dress",
+          "confidence": 0.6871581673622131,
+          "start_time": 93.2,
+          "end_time": 95.5
+        },
+        {
+          "label": "top",
+          "confidence": 0.8120217323303223,
+          "start_time": 93.2,
+          "end_time": 93.2
+        },
+        {
+          "label": "top",
+          "confidence": 0.8049927949905396,
+          "start_time": 93.2,
+          "end_time": 93.2
+        },
+        {
+          "label": "top",
+          "confidence": 0.7655677199363708,
+          "start_time": 93.2,
+          "end_time": 93.2
+        },
+        {
+          "label": "jacket",
+          "confidence": 0.7088422179222107,
+          "start_time": 93.2,
+          "end_time": 95.5
+        },
+        {
+          "label": "pants",
+          "confidence": 0.6891377568244934,
+          "start_time": 93.2,
+          "end_time": 93.2
+        },
+        {
+          "label": "shorts",
+          "confidence": 0.5965677499771118,
+          "start_time": 93.2,
+          "end_time": 93.2
+        },
+        {
+          "label": "pants",
+          "confidence": 0.5821022391319275,
+          "start_time": 93.2,
+          "end_time": 93.2
+        },
+        {
+          "label": "tire",
+          "confidence": 0.5620603561401367,
+          "start_time": 93.2,
+          "end_time": 93.2
+        },
+        {
+          "label": "person",
+          "confidence": 0.9842634797096252,
+          "start_time": 93.4,
+          "end_time": 95.5
+        },
+        {
+          "label": "helmet",
+          "confidence": 0.617735743522644,
+          "start_time": 93.4,
+          "end_time": 93.6
+        },
+        {
+          "label": "airplane",
+          "confidence": 0.7697136998176575,
+          "start_time": 93.5,
+          "end_time": 95.5
+        },
+        {
+          "label": "car",
+          "confidence": 0.8234270811080933,
+          "start_time": 93.6,
+          "end_time": 93.9
+        },
+        {
+          "label": "person",
+          "confidence": 0.8930436968803406,
+          "start_time": 93.7,
+          "end_time": 95.5
+        },
+        {
+          "label": "clothing",
+          "confidence": 0.6508261561393738,
+          "start_time": 94.0,
+          "end_time": 95.5
+        },
+        {
+          "label": "person",
+          "confidence": 0.9980428218841553,
+          "start_time": 95.6,
+          "end_time": 97.2
+        },
+        {
+          "label": "person",
+          "confidence": 0.990745484828949,
+          "start_time": 95.6,
+          "end_time": 97.2
+        },
+        {
+          "label": "outerwear",
+          "confidence": 0.9045425057411194,
+          "start_time": 95.6,
+          "end_time": 97.2
+        },
+        {
+          "label": "outerwear",
+          "confidence": 0.8185100555419922,
+          "start_time": 95.6,
+          "end_time": 97.2
+        },
+        {
+          "label": "pants",
+          "confidence": 0.8306553363800049,
+          "start_time": 95.6,
+          "end_time": 97.2
+        },
+        {
+          "label": "pants",
+          "confidence": 0.524886965751648,
+          "start_time": 95.6,
+          "end_time": 97.0
+        },
+        {
+          "label": "shorts",
+          "confidence": 0.9217305779457092,
+          "start_time": 97.3,
+          "end_time": 100.5
+        },
+        {
+          "label": "shorts",
+          "confidence": 0.9080879092216492,
+          "start_time": 97.3,
+          "end_time": 100.3
+        },
+        {
+          "label": "top",
+          "confidence": 0.856608510017395,
+          "start_time": 97.3,
+          "end_time": 100.5
+        },
+        {
+          "label": "person",
+          "confidence": 0.9613438844680786,
+          "start_time": 97.3,
+          "end_time": 100.7
+        },
+        {
+          "label": "top",
+          "confidence": 0.8170490264892578,
+          "start_time": 97.3,
+          "end_time": 100.3
+        },
+        {
+          "label": "person",
+          "confidence": 0.9553312063217163,
+          "start_time": 97.3,
+          "end_time": 97.9
+        },
+        {
+          "label": "person",
+          "confidence": 0.9200782775878906,
+          "start_time": 99.6,
+          "end_time": 100.7
+        }
+      ]
+    }
+  }
+}
