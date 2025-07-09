@@ -1,6 +1,6 @@
 # We are implementing your suggestion to use the ChatOpenAI class.
 
-from langchain.chat_models import ChatOpenAI # 1. Import the correct ChatOpenAI class
+from langchain_openai import ChatOpenAI # Updated import for newer LangChain version
 from langchain.chains import LLMChain
 from langchain.prompts import PromptTemplate
 import os
