@@ -1,0 +1,216 @@
+notebook_json = '''
+{
+ "cells": [
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "# 🎯 Surveillance AI - Streamlined Colab Notebook\n",
+    "\n",
+    "This notebook runs video analysis directly in Colab, using OpenAI or Gemini, and Google Video Intelligence. All results and uploads are saved to your Google Drive. No server, no agents, no endless loops.\n",
+    "\n",
+    "**Features:**\n",
+    "- Mounts Google Drive, auto-creates `/uploads` and `/results` folders\n",
+    "- Loads `credentials.json` and `.env` from Drive\n",
+    "- Supports OpenAI (default) and Gemini (switchable)\n",
+    "- Manual video uploads only\n",
+    "- Outputs JSON analysis and video previews to Drive\n",
+    "- Minimal manual steps, clear error handling\n"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "metadata": {},
+   "source": [
+    "# Step 1: Mount Google Drive and Setup Project Folders\n",
+    "from google.colab import drive\n",
+    "import os\n",
+    "drive.mount('/content/drive')\n",
+    "\n",
+    "project_path = '/content/drive/MyDrive/surveillance-ai'\n",
+    "uploads_path = os.path.join(project_path, 'uploads')\n",
+    "results_path = os.path.join(project_path, 'results')\n",
+    "os.makedirs(uploads_path, exist_ok=True)\n",
+    "os.makedirs(results_path, exist_ok=True)\n",
+    "print(f'✅ Project directory: {project_path}')\n",
+    "print(f'✅ Uploads directory: {uploads_path}')\n",
+    "print(f'✅ Results directory: {results_path}')\n"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "metadata": {},
+   "source": [
+    "# Step 2: Load Environment Variables and Google Credentials\n",
+    "from dotenv import load_dotenv\n",
+    "import os\n",
+    "env_path = os.path.join(project_path, '.env')\n",
+    "credentials_path = os.path.join(project_path, 'credentials.json')\n",
+    "load_dotenv(env_path)\n",
+    "os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = credentials_path\n",
+    "\n",
+    "openai_key = os.getenv('OPENAI_API_KEY')\n",
+    "gemini_key = os.getenv('GEMINI_API_KEY')\n",
+    "\n",
+    "print(f'📄 .env file exists: {os.path.exists(env_path)}')\n",
+    "print(f'🔑 OpenAI API Key loaded: {\'✅\' if openai_key else \'❌\'}')\n",
+    "print(f'🔑 Gemini API Key loaded: {\'✅\' if gemini_key else \'❌\'}')\n",
+    "print(f'🔑 Google Cloud credentials: {\'✅\' if os.path.exists(credentials_path) else \'❌\'}')\n",
+    "if not openai_key and not gemini_key:\n",
+    "    print('⚠️  Warning: No API keys found in .env!')\n"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "metadata": {},
+   "source": [
+    "# Step 3: Install Required Packages\n",
+    "!pip install --quiet openai google-cloud-videointelligence google-generativeai python-dotenv opencv-python tqdm\n"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "## 📤 Step 4: Upload a Video to Analyze\n",
+    "Upload your video to the `/uploads` folder in your Google Drive (`surveillance-ai/uploads`). Refresh the folder in Drive if needed.\n"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "metadata": {},
+   "source": [
+    "# Step 5: List Uploaded Videos\n",
+    "import glob\n",
+    "uploaded_videos = glob.glob(os.path.join(uploads_path, '*.mp4'))\n",
+    "print('Uploaded videos:')\n",
+    "for v in uploaded_videos:\n",
+    "    print('-', os.path.basename(v))\n",
+    "if not uploaded_videos:\n",
+    "    print('No videos found. Please upload to /uploads in Drive.')\n"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "## 🧠 Step 6: Choose Model (OpenAI or Gemini)\n",
+    "Set `use_gemini = True` to use Gemini, otherwise OpenAI will be used.\n"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "metadata": {},
+   "source": [
+    "# Set this flag to switch between OpenAI and Gemini\n",
+    "use_gemini = False  # Set True to use Gemini, False for OpenAI\n"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "## 🎬 Step 7: Analyze a Video\n",
+    "Call the function below to analyze a video. Results will be saved to `/results` in Drive.\n"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "metadata": {},
+   "source": [
+    "import json\n",
+    "from tqdm import tqdm\n",
+    "import cv2\n",
+    "from google.cloud import videointelligence_v1 as vi\n",
+    "\n",
+    "def analyze_video(video_path, prompt, use_gemini=False):\n",
+    "    # 1. Google Video Intelligence API\n",
+    "    client = vi.VideoIntelligenceServiceClient()\n",
+    "    with open(video_path, 'rb') as f:\n",
+    "        input_content = f.read()\n",
+    "    features = [vi.Feature.LABEL_DETECTION, vi.Feature.EXPLICIT_CONTENT_DETECTION]\n",
+    "    operation = client.annotate_video({\n",
+    "        'features': features,\n    "        'input_content': input_content,\n    "    })\n",
+    "    print('⏳ Waiting for Google Video Intelligence API...')\n",
+    "    result = operation.result(timeout=300)\n",
+    "    annotation = result.annotation_results[0]\n",
+    "    # 2. Extract labels and explicit content\n",
+    "    labels = [l.entity.description for l in annotation.segment_label_annotations]\n",
+    "    explicit = getattr(annotation, 'explicit_annotation', None)\n",
+    "    explicit_frames = []\n",
+    "    if explicit and hasattr(explicit, 'frames'):\n",
+    "        for frame in explicit.frames:\n",
+    "            explicit_frames.append({\n",
+    "                'time_offset': frame.time_offset.total_seconds(),\n    "                'pornography_likelihood': vi.Likelihood(frame.pornography_likelihood).name\n    "            })\n    "    # 3. Frame extraction (preview)\n",
+    "    cap = cv2.VideoCapture(video_path)\n",
+    "    frame_count = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))\n",
+    "    preview_frames = []\n",
+    "    for i in tqdm(range(0, frame_count, max(1, frame_count // 5)), desc='Extracting preview frames'):\n",
+    "        cap.set(cv2.CAP_PROP_POS_FRAMES, i)\n",
+    "        ret, frame = cap.read()\n",
+    "        if ret:\n",
+    "            preview_path = os.path.join(results_path, f'preview_{os.path.basename(video_path)}_{i}.jpg')\n",
+    "            cv2.imwrite(preview_path, frame)\n",
+    "            preview_frames.append(preview_path)\n",
+    "    cap.release()\n",
+    "    # 4. LLM analysis\n",
+    "    summary = ''\n",
+    "    if use_gemini:\n",
+    "        import google.generativeai as genai\n",
+    "        genai.configure(api_key=gemini_key)\n",
+    "        model = genai.GenerativeModel('gemini-pro')\n",
+    "        response = model.generate_content(f'Video labels: {labels}. Prompt: {prompt}')\n",
+    "        summary = response.text\n",
+    "    else:\n",
+    "        import openai\n",
+    "        openai.api_key = openai_key\n",
+    "        completion = openai.chat.completions.create(\n",
+    "            model='gpt-3.5-turbo',\n    "            messages=[\n",
+    "                {\"role\": \"system\", \"content\": \"You are a helpful video analysis assistant.\"},\n    "                {\"role\": \"user\", \"content\": f'Video labels: {labels}. Prompt: {prompt}'}\n    "            ]\n    "        )\n    "        summary = completion.choices[0].message.content\n",
+    "    # 5. Save results\n",
+    "    result_json = {\n",
+    "        'video': os.path.basename(video_path),\n    "        'labels': labels,\n    "        'explicit_content': explicit_frames,\n    "        'llm_summary': summary,\n    "        'preview_frames': preview_frames\n    "    }\n",
+    "    out_path = os.path.join(results_path, os.path.basename(video_path) + '_analysis.json')\n",
+    "    with open(out_path, 'w') as f:\n    "        json.dump(result_json, f, indent=2)\n",
+    "    print(f'✅ Analysis complete! Results saved to: {out_path}')\n",
+    "    return result_json\n"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "## ▶️ Step 8: Run Analysis\n",
+    "Example usage (edit as needed):\n",
+    "```python\n",
+    "video_path = os.path.join(uploads_path, 'your_video.mp4')\n",
+    "prompt = 'Detect any suspicious activity'\n",
+    "result = analyze_video(video_path, prompt, use_gemini=use_gemini)\n",
+    "print(json.dumps(result, indent=2))\n",
+    "```\n"
+   ]
+  }
+ ],
+ "metadata": {
+  "colab": {
+   "name": "surveillance_ai_colab_streamlined.ipynb"
+  },
+  "kernelspec": {
+   "display_name": "Python 3",
+   "language": "python",
+   "name": "python3"
+  },
+  "language_info": {
+   "name": "python",
+   "version": "3.x"
+  }
+ },
+ "nbformat": 4,
+ "nbformat_minor": 0
+}
+'''
+
+with open('surveillance_ai_colab_streamlined.ipynb', 'w', encoding='utf-8') as f:
+    f.write(notebook_json)
+
+print('✅ surveillance_ai_colab_streamlined.ipynb has been created!') 

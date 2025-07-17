@@ -11,6 +11,15 @@ from datetime import datetime
 # Load environment variables
 load_dotenv()
 
+# Set up Google Cloud credentials
+import os
+credentials_path = os.path.join(os.getcwd(), "credentials.json")
+if os.path.exists(credentials_path):
+    os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = credentials_path
+    print(f"Google credentials set to: {credentials_path}")
+else:
+    print(f"Google credentials file not found at: {credentials_path}")
+
 # Configure logging
 logging.basicConfig(
     level=logging.INFO,
@@ -58,12 +67,12 @@ if __name__ == "__main__":
     # Create required directories
     create_required_directories()
     
-    # Start ngrok
-    try:
-        public_url = ngrok.connect(8000)
-        logger.info(f"Ngrok tunnel established at: {public_url}")
-    except Exception as e:
-        logger.error(f"Failed to start ngrok: {str(e)}")
+    # Start ngrok (commented out to avoid session conflicts)
+    # try:
+    #     public_url = ngrok.connect("8000")
+    #     logger.info(f"Ngrok tunnel established at: {public_url}")
+    # except Exception as e:
+    #     logger.error(f"Failed to start ngrok: {str(e)}")
     
     # Start FastAPI server
     uvicorn.run(
