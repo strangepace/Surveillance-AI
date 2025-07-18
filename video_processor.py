@@ -39,22 +39,22 @@ class GoogleVideoProcessor(VideoProcessor):
             raise
     
     def validate_video(self, video_path: str) -> bool:
-        """
-        Validate the video file using OpenCV.
-        Returns True if video is valid, False otherwise.
-        """
-        try:
-            cap = cv2.VideoCapture(video_path)
-            if not cap.isOpened():
-                return False
-            
-            # Check if video has frames
-            ret, _ = cap.read()
-            cap.release()
-            return ret
-        except Exception as e:
-            logger.error(f"Error validating video: {str(e)}")
+    """
+    Validate the video file using OpenCV.
+    Returns True if video is valid, False otherwise.
+    """
+    try:
+        cap = cv2.VideoCapture(video_path)
+        if not cap.isOpened():
             return False
+        
+        # Check if video has frames
+        ret, _ = cap.read()
+        cap.release()
+        return ret
+    except Exception as e:
+        logger.error(f"Error validating video: {str(e)}")
+        return False
 
     def get_video_metadata(self, video_path: str) -> Dict[str, Any]:
         """
@@ -87,60 +87,60 @@ class GoogleVideoProcessor(VideoProcessor):
             return {}
 
     async def process_video(self, video_path: str) -> Dict[str, Any]:
-        """
-        Process video using Google Video Intelligence API.
+    """
+    Process video using Google Video Intelligence API.
         Returns detailed analysis results including labels, objects, timestamps, and metadata.
-        """
-        try:
-            # Validate video first
+    """
+    try:
+        # Validate video first
             if not self.validate_video(video_path):
-                raise ValueError("Invalid or corrupted video file")
-            
+            raise ValueError("Invalid or corrupted video file")
+        
             # Get video metadata
             metadata = self.get_video_metadata(video_path)
-            
+        
             # Configure the request with more features
-            features = [
-                videointelligence.Feature.LABEL_DETECTION,
-                videointelligence.Feature.OBJECT_TRACKING,
+        features = [
+            videointelligence.Feature.LABEL_DETECTION,
+            videointelligence.Feature.OBJECT_TRACKING,
                 videointelligence.Feature.SHOT_CHANGE_DETECTION,
                 videointelligence.Feature.EXPLICIT_CONTENT_DETECTION,
-            ]
-            
-            # Read the video file
-            with open(video_path, "rb") as file:
-                input_content = file.read()
-            
-            # Configure the request
-            request = videointelligence.AnnotateVideoRequest(
-                input_content=input_content,
-                features=features,
-            )
-            
-            # Make the request
+        ]
+        
+        # Read the video file
+        with open(video_path, "rb") as file:
+            input_content = file.read()
+        
+        # Configure the request
+        request = videointelligence.AnnotateVideoRequest(
+            input_content=input_content,
+            features=features,
+        )
+        
+        # Make the request
             if self.client is None:
                 raise Exception("Google Video Intelligence client not initialized")
             operation = self.client.annotate_video(request=request)
-            
-            # Wait for operation to complete (with timeout)
-            start_time = time.time()
-            while not operation.done():
-                if time.time() - start_time > 180:  # 3-minute timeout
-                    raise TimeoutError("Video processing timed out")
-                time.sleep(1)
-            
-            # Get the results
-            result = operation.result()
-            
-            # Process and structure the results
-            analysis = {
+        
+        # Wait for operation to complete (with timeout)
+        start_time = time.time()
+        while not operation.done():
+            if time.time() - start_time > 180:  # 3-minute timeout
+                raise TimeoutError("Video processing timed out")
+            time.sleep(1)
+        
+        # Get the results
+        result = operation.result()
+        
+        # Process and structure the results
+        analysis = {
                 "metadata": {
                     "video_path": video_path,
                     "processing_timestamp": datetime.utcnow().isoformat(),
                     "video_metadata": metadata,
                     "processor": "google_video_intelligence"
                 },
-                "labels": [],
+            "labels": [],
                 "objects": [],
                 "shots": [],
                 "explicit_content": [],
@@ -155,27 +155,27 @@ class GoogleVideoProcessor(VideoProcessor):
             # Check if we have annotation results
             if result and result.annotation_results and len(result.annotation_results) > 0:
                 annotation_result = result.annotation_results[0]
-                
-                # Process label annotations
+        
+        # Process label annotations
                 if hasattr(annotation_result, 'shot_label_annotations'):
                     for annotation in annotation_result.shot_label_annotations:
-                        for segment in annotation.segments:
+            for segment in annotation.segments:
                             label_data = {
-                                "label": annotation.entity.description,
+                    "label": annotation.entity.description,
                                 "confidence": float(segment.confidence),
-                                "start_time": segment.segment.start_time_offset.total_seconds(),
+                    "start_time": segment.segment.start_time_offset.total_seconds(),
                                 "end_time": segment.segment.end_time_offset.total_seconds(),
                                 "duration": segment.segment.end_time_offset.total_seconds() - segment.segment.start_time_offset.total_seconds()
                             }
                             analysis["labels"].append(label_data)
-                
-                # Process object annotations
+        
+        # Process object annotations
                 if hasattr(annotation_result, 'object_annotations'):
                     for annotation in annotation_result.object_annotations:
                         object_data = {
-                            "label": annotation.entity.description,
+                "label": annotation.entity.description,
                             "confidence": float(annotation.confidence),
-                            "start_time": annotation.segment.start_time_offset.total_seconds(),
+                "start_time": annotation.segment.start_time_offset.total_seconds(),
                             "end_time": annotation.segment.end_time_offset.total_seconds(),
                             "duration": annotation.segment.end_time_offset.total_seconds() - annotation.segment.start_time_offset.total_seconds()
                         }
@@ -216,12 +216,12 @@ class GoogleVideoProcessor(VideoProcessor):
             # Add filtered results by confidence
             analysis["high_confidence_labels"] = [label for label in analysis["labels"] if label["confidence"] >= 0.8]
             analysis["high_confidence_objects"] = [obj for obj in analysis["objects"] if obj["confidence"] >= 0.8]
-            
-            return analysis
-            
-        except Exception as e:
-            logger.error(f"Error processing video: {str(e)}")
-            raise Exception(f"Video processing failed: {str(e)}")
+        
+        return analysis
+        
+    except Exception as e:
+        logger.error(f"Error processing video: {str(e)}")
+        raise Exception(f"Video processing failed: {str(e)}") 
 
 # Future local model implementations
 class LocalModelProcessor(VideoProcessor):
