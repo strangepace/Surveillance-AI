@@ -1,3 +1,8 @@
 clip_model:
   name: "ViT-B-32"
-  backend: "open_clip" 
+  backend: "open_clip"
+
+frame_extraction:
+  sampling_rate: 15
+  output_dir: "content/frames"
+  resize: false 
