@@ -48,7 +48,7 @@ def test_imports():
     print("Testing imports...")
     
     try:
-        from config_loader import load_clip_config
+        from .config_loader import load_clip_config
         print("✅ config_loader imported successfully")
         return True
     except ImportError as e:

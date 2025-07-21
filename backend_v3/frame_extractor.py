@@ -8,7 +8,7 @@ import cv2
 from PIL import Image
 import numpy as np
 from typing import List, Dict, Any, Optional
-from config_loader import load_clip_config
+from .config_loader import load_clip_config
 
 
 def extract_frames(video_path: str, output_dir: str, sampling_rate: int = 1, 

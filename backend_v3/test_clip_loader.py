@@ -6,7 +6,7 @@ Loads the model, runs dummy text and image encoding, and asserts outputs.
 import torch
 from PIL import Image
 import numpy as np
-from clip_loader import get_clip_model
+from .clip_loader import get_clip_model
 
 def test_clip_loader():
     """

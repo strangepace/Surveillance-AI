@@ -6,7 +6,7 @@ Tests frame extraction, timestamp naming, output directory creation, and metadat
 import os
 import tempfile
 import shutil
-from frame_extractor import extract_frames, format_timestamp, get_video_info
+from .frame_extractor import extract_frames, format_timestamp, get_video_info
 
 
 def test_format_timestamp():
