@@ -1,0 +1,15 @@
+# CLIP Configuration for Surveillance AI backend-v3
+name: "ViT-B-32"
+backend: "open_clip"
+similarity_threshold: 0.85
+
+# Frame extraction settings
+frame_extraction:
+  sampling_rate: 1
+  output_dir: "content/frames"
+  resize: false
+
+# Preview clip settings
+preview_clip:
+  length: 3
+  output_dir: "results/previews" 
