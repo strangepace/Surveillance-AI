@@ -2,6 +2,7 @@
 """
 Full analyzer pipeline for backend-v3.
 Integrates frame extraction, CLIP loading, prompt interpretation, detection, and preview generation.
+Enhanced with error handling and Colab compatibility.
 """
 import os
 import json
@@ -11,11 +12,18 @@ from typing import List, Dict, Any, Optional, Tuple
 from dataclasses import dataclass, asdict
 import torch
 import numpy as np
+import shutil
+import cv2
 
-from .clip_loader import get_clip_model
-from .frame_extractor import extract_frames
-from .prompt_interpreter import interpret_multiple_prompts
-from .clip_generator import generate_preview_clip
+# Import our new modules
+from error_handler import error_handler, ErrorType
+from colab_compat import colab_compat
+
+from clip_loader import get_clip_model
+from frame_extractor import extract_frames
+from prompt_interpreter import interpret_multiple_prompts
+from clip_generator import generate_preview_clip
+from alert_classifier import classify_detections, get_alert_summary
 
 
 @dataclass
@@ -47,11 +55,16 @@ class VideoAnalyzer:
         self.config = None
         self.similarity_threshold = 0.85
         
-        self._load_config()
-        self._load_clip_model()
+        # Initialize with error handling
+        try:
+            self._load_config()
+            self._load_clip_model()
+        except Exception as e:
+            error_handler.log_error(e, ErrorType.CLIP_MODEL, {"config_path": config_path})
+            raise
     
     def _load_config(self):
-        """Load configuration from YAML file."""
+        """Load configuration from YAML file with error handling."""
         try:
             import yaml
             with open(self.config_path, 'r') as f:
@@ -61,30 +74,31 @@ class VideoAnalyzer:
             if 'similarity_threshold' in self.config:
                 self.similarity_threshold = self.config['similarity_threshold']
             
-            print(f"✅ Loaded config: {self.config_path}")
-            print(f"   Model: {self.config.get('model_name', 'ViT-B/32')}")
+            print(f"Loaded config: {self.config_path}")
+            print(f"   Model: {self.config.get('model_name', 'ViT-B-32')}")
             print(f"   Threshold: {self.similarity_threshold}")
             
+        except FileNotFoundError as e:
+            error_msg = f"Configuration file not found: {self.config_path}"
+            error_handler.log_error(e, ErrorType.FILE_IO, {"config_path": self.config_path})
+            raise Exception(error_msg)
         except Exception as e:
-            print(f"⚠️  Config loading failed: {e}")
-            # Use defaults
-            self.config = {
-                'model_name': 'ViT-B/32',
-                'similarity_threshold': 0.85
-            }
+            error_msg = f"Failed to load configuration: {e}"
+            error_handler.log_error(e, ErrorType.FILE_IO, {"config_path": self.config_path})
+            raise Exception(error_msg)
     
     def _load_clip_model(self):
-        """Load CLIP model and processor."""
+        """Load CLIP model and processor with error handling."""
         try:
-            self.clip_model, self.clip_tokenizer, self.clip_preprocess = get_clip_model(
+            self.clip_model, self.clip_tokenizer, self.clip_preprocess, self.device = get_clip_model(
                 config_path=self.config_path
             )
-            self.device = next(self.clip_model.parameters()).device
-            print(f"✅ CLIP model loaded on {self.device}")
+            print(f"CLIP model loaded on {self.device}")
             
         except Exception as e:
-            print(f"❌ CLIP model loading failed: {e}")
-            raise
+            error_msg = f"CLIP model loading failed: {e}"
+            error_handler.log_error(e, ErrorType.CLIP_MODEL, {"config_path": self.config_path})
+            raise Exception(error_msg)
     
     def generate_video_id(self, video_path: str) -> str:
         """
@@ -96,16 +110,19 @@ class VideoAnalyzer:
         Returns:
             str: Unique video ID
         """
-        if not os.path.exists(video_path):
-            return "unknown"
-        
-        # Get file stats
-        stat = os.stat(video_path)
-        file_info = f"{video_path}_{stat.st_mtime}_{stat.st_size}"
-        
-        # Generate hash
-        video_id = hashlib.md5(file_info.encode()).hexdigest()[:8]
-        return video_id
+        try:
+            # Get file stats
+            stat = os.stat(video_path)
+            file_info = f"{video_path}_{stat.st_mtime}_{stat.st_size}"
+            
+            # Generate hash
+            video_id = hashlib.md5(file_info.encode()).hexdigest()[:8]
+            return video_id
+            
+        except Exception as e:
+            error_handler.log_error(e, ErrorType.FILE_IO, {"video_path": video_path})
+            # Fallback to timestamp-based ID
+            return f"video_{int(time.time())}"
     
     def calculate_similarity(self, image_features: torch.Tensor, text_features: torch.Tensor) -> float:
         """
@@ -140,7 +157,7 @@ class VideoAnalyzer:
         if not self.clip_tokenizer:
             raise RuntimeError("CLIP tokenizer not loaded")
         
-        # Process text prompts
+        # Process text prompts and move to device
         text_tokens = self.clip_tokenizer(prompts).to(self.device)
         
         # Encode with CLIP
@@ -162,7 +179,7 @@ class VideoAnalyzer:
         if not self.clip_preprocess:
             raise RuntimeError("CLIP preprocess not loaded")
         
-        # Process frames
+        # Process frames and move to device
         from PIL import Image
         processed_frames = torch.stack([
             self.clip_preprocess(Image.fromarray(frame)) for frame in frames
@@ -174,7 +191,7 @@ class VideoAnalyzer:
         
         return image_features
     
-    def analyze_video(self, video_path: str, prompts: List[str], output_dir: str) -> str:
+    async def analyze_video(self, video_path: str, prompts: List[str], output_dir: str) -> str:
         """
         Analyze video with given prompts and generate detection results.
         
@@ -186,9 +203,9 @@ class VideoAnalyzer:
         Returns:
             str: Path to results JSON file
         """
-        print(f"🎬 Starting video analysis: {video_path}")
-        print(f"📝 Prompts: {prompts}")
-        print(f"📁 Output directory: {output_dir}")
+        print(f"Starting video analysis: {video_path}")
+        print(f"Prompts: {prompts}")
+        print(f"Output directory: {output_dir}")
         
         # Create output directories
         os.makedirs(output_dir, exist_ok=True)
@@ -197,117 +214,166 @@ class VideoAnalyzer:
         
         # Generate video ID
         video_id = self.generate_video_id(video_path)
-        print(f"🆔 Video ID: {video_id}")
-        
-        # Step 1: Interpret prompts into structured categories
-        print("\n🔍 Step 1: Interpreting prompts...")
-        prompt_categories = interpret_multiple_prompts(prompts)
-        
-        # Flatten all detection labels
-        all_labels = []
-        for categories in prompt_categories:
-            for category, items in categories.items():
-                all_labels.extend(items)
-        
-        all_labels = list(set(all_labels))  # Remove duplicates
-        print(f"   Extracted {len(all_labels)} unique labels: {all_labels}")
-        
-        # Step 2: Extract frames from video
-        print("\n🎞️  Step 2: Extracting frames...")
-        frames_data = extract_frames(video_path)
-        frames = frames_data['frames']
-        timestamps = frames_data['timestamps']
-        
-        print(f"   Extracted {len(frames)} frames")
-        
-        # Step 3: Encode text prompts with CLIP
-        print("\n📝 Step 3: Encoding text prompts...")
-        text_features = self.encode_text_prompts(all_labels)
-        print(f"   Encoded {len(all_labels)} text prompts")
-        
-        # Step 4: Process frames in batches
-        print("\n🖼️  Step 4: Processing frames...")
-        batch_size = 8  # Process frames in batches for efficiency
-        detection_results = []
-        
-        for i in range(0, len(frames), batch_size):
-            batch_frames = frames[i:i + batch_size]
-            batch_timestamps = timestamps[i:i + batch_size]
+        print(f"Video ID: {video_id}")
+
+        # Prepare temp frame directory
+        temp_frame_dir = os.path.join("temp_frames", video_id)
+        os.makedirs(temp_frame_dir, exist_ok=True)
+
+        try:
+            # Step 1: Interpret prompts into structured categories
+            print("\nStep 1: Interpreting prompts...")
+            prompt_categories = await interpret_multiple_prompts(prompts)
             
-            print(f"   Processing batch {i//batch_size + 1}/{(len(frames) + batch_size - 1)//batch_size}")
+            # Extract meaningful labels from prompts
+            all_labels = []
+            for category_info in prompt_categories:
+                # Extract labels from the new structure
+                labels = category_info.get("labels", [])
+                if labels:
+                    all_labels.extend(labels)
+                else:
+                    # Fallback: use the original prompt
+                    prompt = category_info.get("prompt", "")
+                    all_labels.append(prompt)
             
-            # Encode batch of frames
-            image_features = self.encode_frames(batch_frames)
+            all_labels = list(set(all_labels))  # Remove duplicates
+            print(f"   Extracted {len(all_labels)} unique labels: {all_labels}")
+
+            # Step 2: Extract frames from video
+            print("\nStep 2: Extracting frames...")
+            frames_data = extract_frames(video_path, temp_frame_dir)
+            # frames_data is a list of dicts with keys: frame_path, timestamp, timestamp_seconds, frame_number
+            frames = [cv2.imread(fd['frame_path']) for fd in frames_data]
+            timestamps = [fd['timestamp_seconds'] for fd in frames_data]
+            print(f"   Extracted {len(frames)} frames")
+
+            # Step 3: Encode text prompts with CLIP
+            print("\nStep 3: Encoding text prompts...")
+            text_features = self.encode_text_prompts(all_labels)
+            print(f"   Encoded {len(all_labels)} text prompts")
+
+            # Step 4: Process frames in batches
+            print("\nStep 4: Processing frames...")
+            batch_size = 8  # Process frames in batches for efficiency
+            detection_results = []
+            for i in range(0, len(frames), batch_size):
+                batch_frames = frames[i:i + batch_size]
+                batch_timestamps = timestamps[i:i + batch_size]
+                print(f"   Processing batch {i//batch_size + 1}/{(len(frames) + batch_size - 1)//batch_size}")
+                # Encode batch of frames
+                image_features = self.encode_frames(batch_frames)
+                # Compare each frame with each text prompt
+                for j, (frame, timestamp) in enumerate(zip(batch_frames, batch_timestamps)):
+                    frame_idx = i + j
+                    
+                    # Calculate similarities for this frame
+                    frame_features = image_features[j:j+1]
+                    similarities = []
+                    
+                    for k, label in enumerate(all_labels):
+                        text_feature = text_features[k:k+1]
+                        similarity = self.calculate_similarity(frame_features, text_feature)
+                        similarities.append((label, similarity))
+                    
+                    # Debug: Print top 3 similarity scores for this frame
+                    top_similarities = sorted(similarities, key=lambda x: x[1], reverse=True)[:3]
+                    print(f"[DEBUG] Frame {frame_idx} top similarities: {top_similarities}")
+                    
+                    # Find matches above threshold
+                    matches = [(label, sim) for label, sim in similarities if sim >= self.similarity_threshold]
+                    
+                    if matches:
+                        # Sort by confidence
+                        matches.sort(key=lambda x: x[1], reverse=True)
+                        
+                        # Generate preview clip
+                        timestamp_str = f"{int(timestamp//3600):02d}:{int((timestamp%3600)//60):02d}:{int(timestamp%60):02d}"
+                        preview_path = generate_preview_clip(
+                            video_path, 
+                            previews_dir, 
+                            timestamp_str, 
+                            clip_length=3
+                        )
+                        
+                        # Create detection result
+                        labels = [label for label, _ in matches]
+                        confidence = max(sim for _, sim in matches)
+                        
+                        result = DetectionResult(
+                            timestamp=timestamp_str,
+                            labels=labels,
+                            confidence=confidence,
+                            preview_clip=preview_path,
+                            frame_index=frame_idx,
+                            prompt_matches=matches
+                        )
+                        
+                        detection_results.append(result)
+                        
+                        print(f"      ✅ Match at {timestamp_str}: {labels} (confidence: {confidence:.3f})")
             
-            # Compare each frame with each text prompt
-            for j, (frame, timestamp) in enumerate(zip(batch_frames, batch_timestamps)):
-                frame_idx = i + j
-                
-                # Calculate similarities for this frame
-                frame_features = image_features[j:j+1]
-                similarities = []
-                
-                for k, label in enumerate(all_labels):
-                    text_feature = text_features[k:k+1]
-                    similarity = self.calculate_similarity(frame_features, text_feature)
-                    similarities.append((label, similarity))
-                
-                # Find matches above threshold
-                matches = [(label, sim) for label, sim in similarities if sim >= self.similarity_threshold]
-                
-                if matches:
-                    # Sort by confidence
-                    matches.sort(key=lambda x: x[1], reverse=True)
-                    
-                    # Generate preview clip
-                    timestamp_str = f"{timestamp//3600:02d}:{(timestamp%3600)//60:02d}:{timestamp%60:02d}"
-                    preview_path = generate_preview_clip(
-                        video_path, 
-                        previews_dir, 
-                        timestamp_str, 
-                        clip_length=3
-                    )
-                    
-                    # Create detection result
-                    labels = [label for label, _ in matches]
-                    confidence = max(sim for _, sim in matches)
-                    
-                    result = DetectionResult(
-                        timestamp=timestamp_str,
-                        labels=labels,
-                        confidence=confidence,
-                        preview_clip=preview_path,
-                        frame_index=frame_idx,
-                        prompt_matches=matches
-                    )
-                    
-                    detection_results.append(result)
-                    
-                    print(f"      ✅ Match at {timestamp_str}: {labels} (confidence: {confidence:.3f})")
-        
-        # Step 5: Save results to JSON
-        print(f"\n💾 Step 5: Saving results...")
-        results_file = os.path.join(output_dir, f"video_{video_id}.json")
-        
-        # Convert results to JSON-serializable format
-        json_results = []
-        for result in detection_results:
-            json_result = asdict(result)
-            # Convert torch tensors to lists if present
-            if 'prompt_matches' in json_result and json_result['prompt_matches']:
-                json_result['prompt_matches'] = [
-                    (label, float(sim)) for label, sim in json_result['prompt_matches']
-                ]
-            json_results.append(json_result)
-        
-        # Save to file
-        with open(results_file, 'w') as f:
-            json.dump(json_results, f, indent=2)
-        
-        print(f"   Saved {len(detection_results)} detections to {results_file}")
-        print(f"🎉 Analysis complete! Found {len(detection_results)} matches.")
-        
-        return results_file
+            # Step 5: Save results to JSON
+            print(f"\nStep 5: Saving results...")
+            
+            # Step 5.1: Classify detections into alert categories
+            print(f"Step 5.1: Classifying alerts...")
+            
+            # Convert DetectionResult objects to dictionaries for alert classifier
+            detection_dicts = []
+            for result in detection_results:
+                detection_dict = {
+                    "timestamp": result.timestamp,
+                    "labels": result.labels,
+                    "confidence": result.confidence,
+                    "preview_clip": result.preview_clip,
+                    "summary": result.summary,
+                    "frame_index": result.frame_index,
+                    "prompt_matches": result.prompt_matches
+                }
+                detection_dicts.append(detection_dict)
+            
+            classified_detections = classify_detections(detection_dicts)
+            alert_summary = get_alert_summary(classified_detections)
+            
+            print(f"   📊 Alert Summary:")
+            print(f"      Total detections: {alert_summary['total_detections']}")
+            print(f"      Categories: {alert_summary['categories']}")
+            print(f"      Priorities: {alert_summary['priorities']}")
+            
+            results_file = os.path.join(output_dir, f"video_{video_id}.json")
+            
+            # Convert results to JSON-serializable format
+            json_results = []
+            for result in classified_detections:
+                # result is already a dictionary from alert classifier
+                json_result = result.copy()
+                # Convert torch tensors to lists if present
+                if 'prompt_matches' in json_result and json_result['prompt_matches']:
+                    json_result['prompt_matches'] = [
+                        (label, float(sim)) for label, sim in json_result['prompt_matches']
+                    ]
+                json_results.append(json_result)
+            
+            # Add alert summary to results
+            final_results = {
+                "detections": json_results,
+                "alert_summary": alert_summary,
+                "video_id": video_id,
+                "analysis_timestamp": time.strftime("%Y-%m-%d %H:%M:%S")
+            }
+            
+            # Save to file
+            with open(results_file, 'w') as f:
+                json.dump(final_results, f, indent=2)
+            
+            print(f"   Saved {len(classified_detections)} detections to {results_file}")
+            print(f"🎉 Analysis complete! Found {len(classified_detections)} matches.")
+            return results_file
+        finally:
+            # Clean up temp frame directory
+            if os.path.exists(temp_frame_dir):
+                shutil.rmtree(temp_frame_dir)
     
     def analyze_video_simple(self, video_path: str, prompts: List[str], output_dir: str) -> str:
         """
@@ -321,7 +387,7 @@ class VideoAnalyzer:
         Returns:
             str: Path to results JSON file
         """
-        print(f"🎬 Simple video analysis: {video_path}")
+        print(f"Simple video analysis: {video_path}")
         
         # Create output directories
         os.makedirs(output_dir, exist_ok=True)
@@ -378,19 +444,79 @@ class VideoAnalyzer:
 
 
 # Convenience function for easy usage
-def analyze_video(video_path: str, prompts: List[str], output_dir: str = "results") -> tuple:
+async def analyze_video(video_path: str, prompts: List[str], output_dir: str = "results") -> tuple:
     """
-    Convenience function to analyze a video.
+    Main analysis function with comprehensive error handling.
+    
     Args:
         video_path (str): Path to video file
-        prompts (List[str]): List of natural language prompts
-        output_dir (str): Directory to store results
+        prompts (List[str]): List of prompts to search for
+        output_dir (str): Directory to save results
+        
     Returns:
-        tuple: (results: list, json_path: str)
+        tuple: (results_dict, json_path)
     """
-    analyzer = VideoAnalyzer()
-    results_file = analyzer.analyze_video(video_path, prompts, output_dir)
-    # Load results from file
-    with open(results_file, 'r') as f:
-        results = json.load(f)
-    return results, results_file 
+    print("DEBUG: Entered analyze_video function")
+    
+    try:
+        # Validate inputs
+        if not video_path or not os.path.exists(video_path):
+            raise Exception(f"Video file not found: {video_path}")
+        
+        if not prompts or len(prompts) == 0:
+            raise Exception("No prompts provided")
+        
+        # Use Colab-compatible output directory
+        if colab_compat.is_colab():
+            output_dir = colab_compat.get_results_dir()
+            print(f"🌐 Using Colab output directory: {output_dir}")
+        
+        # Ensure output directory exists
+        colab_compat.ensure_directory(output_dir)
+        
+        # Initialize analyzer with error handling
+        try:
+            analyzer = VideoAnalyzer()
+        except Exception as e:
+            error_handler.log_error(e, ErrorType.CLIP_MODEL, {
+                "video_path": video_path,
+                "prompts": prompts
+            })
+            raise Exception(f"Failed to initialize analyzer: {e}")
+        
+        # Run analysis
+        try:
+            results_file = await analyzer.analyze_video(video_path, prompts, output_dir)
+        except Exception as e:
+            error_handler.log_error(e, ErrorType.FRAME_EXTRACTION, {
+                "video_path": video_path,
+                "prompts": prompts,
+                "output_dir": output_dir
+            })
+            raise Exception(f"Analysis failed: {e}")
+        
+        # Load results from file with error handling
+        try:
+            with open(results_file, 'r') as f:
+                results = json.load(f)
+        except Exception as e:
+            error_handler.log_error(e, ErrorType.FILE_IO, {
+                "results_file": results_file,
+                "operation": "read_results"
+            })
+            raise Exception(f"Failed to read results: {e}")
+        
+        print("DEBUG - Results Type:", type(results))
+        print("DEBUG - Sample Result:", results[:1] if isinstance(results, list) else results)
+        print("DEBUG: About to return from analyze_video")
+        
+        return results, results_file
+        
+    except Exception as e:
+        # Log the error and re-raise
+        error_handler.log_error(e, ErrorType.UNKNOWN, {
+            "video_path": video_path,
+            "prompts": prompts,
+            "output_dir": output_dir
+        })
+        raise 

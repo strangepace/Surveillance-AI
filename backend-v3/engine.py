@@ -3,8 +3,8 @@
 import os
 import json
 from typing import List, Dict, Any
-from .config import CONFIDENCE_THRESHOLDS, PREVIEW_CLIP_DURATION, PREVIEW_CLIP_DIR, OUTPUT_JSON_DIR
-from .detectors import PeopleDetector, ColorDetector, FireDetector
+from config import CONFIDENCE_THRESHOLDS, PREVIEW_CLIP_DURATION, PREVIEW_CLIP_DIR, OUTPUT_JSON_DIR
+from detectors import PeopleDetector, ColorDetector, FireDetector
 
 class DetectionEngine:
     def __init__(self, config=None):

@@ -1,8 +1,40 @@
-clip_model:
-  name: "ViT-B-32"
-  backend: "open_clip"
-
+batch_size: 8
+device:
+  auto_detect: true
+  force_cpu: false
+  log_device: true
 frame_extraction:
-  sampling_rate: 15
-  output_dir: "content/frames"
-  resize: false 
+  output_dir: content/frames
+  resize: false
+  sampling_rate: 30
+frame_size:
+- 224
+- 224
+model_name: ViT-B-32
+preview_clip:
+  length: 3
+  output_dir: results/previews
+sampling_rate: 30
+similarity_threshold: 0.7
+
+# Colab Compatibility Settings
+paths:
+  # Local environment paths
+  base_results_dir: "./results"
+  base_uploads_dir: "./content/uploads"
+  base_frames_dir: "./content/frames"
+  base_models_dir: "./models"
+  
+  # Colab environment paths (when COLAB_MODE=true)
+  colab_results_dir: "/content/results"
+  colab_uploads_dir: "/content/uploads"
+  colab_frames_dir: "/content/frames"
+  colab_models_dir: "/content/models"
+  colab_json_dir: "/content/results/json"
+
+# Error Handling Settings
+error_handling:
+  log_stack_traces: true
+  return_detailed_errors: true
+  max_retries: 3
+  timeout_seconds: 600

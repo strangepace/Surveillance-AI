@@ -22,4 +22,4 @@ def load_clip_config(config_path=None):
         raise FileNotFoundError(f"CLIP config file not found: {config_path}")
     with open(config_path, 'r') as f:
         config = yaml.safe_load(f)
-    return config.get('clip_model', {}) 
+    return config 

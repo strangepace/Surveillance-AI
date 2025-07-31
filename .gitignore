@@ -1,20 +1,133 @@
-# Python virtual environment
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Virtual Environment
 venv/
+env/
+ENV/
+env.bak/
+venv.bak/
 
-# Environment and credentials
-.env
-credentials
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
 
-# Backend v2 and v3 generated/test data
-backend-v2/tests/
-backend-v3/content/
-backend-v3/results/
-backend-v3/tests/
-
-# General generated data
-*.log
-*.mp4
-
-# OS and editor files
+# OS
 .DS_Store
-Thumbs.db 
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Video and Media Files
+*.mp4
+*.avi
+*.mov
+*.mkv
+*.wmv
+*.flv
+*.webm
+*.m4v
+*.3gp
+*.mpg
+*.mpeg
+
+# Extracted Frames and Images
+*.jpg
+*.jpeg
+*.png
+*.gif
+*.bmp
+*.tiff
+*.webp
+temp_frames/
+frames/
+uploads/
+content/uploads/
+content/frames/
+
+# Logs
+*.log
+logs/
+*.log.*
+
+# Cache and Temporary Files
+.cache/
+tmp/
+temp/
+*.tmp
+*.temp
+
+# Model Files and Weights
+*.pth
+*.pt
+*.ckpt
+*.safetensors
+models/
+weights/
+
+# Results and Output
+results/
+test_results/
+pipeline_test_results/
+complex_test_results/
+final_test_results/
+preview_clips/
+test_clips/
+
+# Environment Variables
+.env
+.env.local
+.env.production
+.env.staging
+
+# Credentials
+credentials.json
+*.key
+*.pem
+
+# Large Files
+*.zip
+*.tar.gz
+*.rar
+*.7z
+
+# Test Files (optional - uncomment if you don't want test files)
+# test_*.py
+# *_test.py
+
+# Colab specific
+/content/
+/root/
+
+# Jupyter Notebooks
+*.ipynb
+.ipynb_checkpoints/
+
+# Documentation build
+docs/_build/ 

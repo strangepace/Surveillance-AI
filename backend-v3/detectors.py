@@ -5,14 +5,13 @@ import torch
 import numpy as np
 from PIL import Image
 import cv2
-from .clip_loader import get_clip_model
+from clip_loader import get_clip_model
 
 class PeopleDetector:
     def __init__(self, config):
         self.config = config
         # Load CLIP model for people detection
-        self.model, self.tokenizer, self.preprocess = get_clip_model()
-        self.device = next(self.model.parameters()).device
+        self.model, self.tokenizer, self.preprocess, self.device = get_clip_model()
 
     def detect(self, video_path: str) -> List[Dict[str, Any]]:
         """Detect people, age, gender, and clothing in the video using CLIP."""
@@ -42,8 +41,7 @@ class ColorDetector:
     def __init__(self, config):
         self.config = config
         # Load CLIP model for color detection
-        self.model, self.tokenizer, self.preprocess = get_clip_model()
-        self.device = next(self.model.parameters()).device
+        self.model, self.tokenizer, self.preprocess, self.device = get_clip_model()
 
     def detect(self, video_path: str) -> List[Dict[str, Any]]:
         """Detect key colors in clothing and objects using CLIP."""
@@ -81,8 +79,7 @@ class FireDetector:
     def __init__(self, config):
         self.config = config
         # Load CLIP model for fire detection
-        self.model, self.tokenizer, self.preprocess = get_clip_model()
-        self.device = next(self.model.parameters()).device
+        self.model, self.tokenizer, self.preprocess, self.device = get_clip_model()
 
     def detect(self, video_path: str) -> List[Dict[str, Any]]:
         """Detect fire, flames, and smoke in the video using CLIP."""
