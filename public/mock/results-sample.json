@@ -1,0 +1,17 @@
+{
+  "status": "complete",
+  "video_id": "mock-video-123",
+  "analysis_timestamp": "2025-01-01T12:00:00Z",
+  "json_path": "/mock/results-sample.json",
+  "alert_summary": { "people": 12, "vehicles": 5, "fire": 1 },
+  "results": [
+    { "timestamp": "00:00:05", "labels": ["person", "black jacket"], "confidence": 0.86, "preview_clip": "/placeholder.mp4" },
+    { "timestamp": "00:00:12", "labels": ["red car", "vehicle"], "confidence": 0.78, "preview_clip": "/placeholder.mp4" },
+    { "timestamp": "00:00:22", "labels": ["smoke", "fire"], "confidence": 0.91, "preview_clip": "/placeholder.mp4" },
+    { "timestamp": "00:00:29", "labels": ["two people", "walking"], "confidence": 0.72, "preview_clip": "/placeholder.mp4" },
+    { "timestamp": "00:00:36", "labels": ["black SUV", "vehicle"], "confidence": 0.83, "preview_clip": "/placeholder.mp4" },
+    { "timestamp": "00:00:41", "labels": ["person", "backpack"], "confidence": 0.67, "preview_clip": "/placeholder.mp4" },
+    { "timestamp": "00:00:49", "labels": ["person", "blue shirt"], "confidence": 0.58, "preview_clip": "/placeholder.mp4" },
+    { "timestamp": "00:01:03", "labels": ["vehicle", "truck"], "confidence": 0.74, "preview_clip": "/placeholder.mp4" }
+  ]
+}
