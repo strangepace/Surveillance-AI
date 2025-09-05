@@ -1,135 +1,108 @@
-# Welcome to your Lovable project
+# Surveillance AI Frontend
 
-## Project info
+A modern React + Vite frontend application for the Surveillance AI platform, providing an intuitive interface for video analysis, real-time monitoring, and detection management.
 
-**URL**: https://lovable.dev/projects/abc4f80a-3ba6-4a90-9e46-cade4450f23f
+## 🚀 Quick Start
 
-## How can I edit this code?
+### Prerequisites
+- **Node.js 18+**
+- **npm** or **yarn**
 
-There are several ways of editing your application.
+### Installation
+```bash
+# Install dependencies
+npm ci
 
-**Use Lovable**
+# Copy environment file
+cp .env.example .env
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/abc4f80a-3ba6-4a90-9e46-cade4450f23f) and start prompting.
-
-Changes made via Lovable will be committed automatically to this repo.
-
-**Use your preferred IDE**
-
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
-
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
-
-Follow these steps:
-
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
-
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
-
-# Step 3: Install the necessary dependencies.
-npm i
-
-# Step 4: Start the development server with auto-reloading and an instant preview.
+# Start development server
 npm run dev
 ```
 
-**Edit a file directly in GitHub**
+## 🌐 Development URLs
+- **Local Development**: http://localhost:8080
+- **Backend API**: http://127.0.0.1:8000 (configured in .env)
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+## 🏗️ Project Structure
 
-**Use GitHub Codespaces**
-
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
-
-## What technologies are used for this project?
-
-This project is built with:
-
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
-
-## How can I deploy this project?
-
-Simply open [Lovable](https://lovable.dev/projects/abc4f80a-3ba6-4a90-9e46-cade4450f23f) and click on Share -> Publish.
-
-## Can I connect a custom domain to my Lovable project?
-
-Yes, you can!
-
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
-
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/tips-tricks/custom-domain#step-by-step-guide)
-
----
-
-## Live Mode (Real‑time Alerts)
-
-This project includes a live alerts experience powered by a WebSocket client and REST fallbacks.
-
-- Pages: `/live` (simple), `/live-alerts` (full feed & bulk actions)
-- WebSocket: built in `src/lib/liveClient.ts` using `API_BASE` to resolve `wss://` URL
-- REST helpers: see `src/lib/api.ts` (ack, pin, note, export)
-- Auto‑fallback: after repeated connection instability, the app switches to mock mode
-
-How to use:
-1) Run the app: `npm run dev`
-2) Open `/live-alerts`
-3) Use the Dev Panel (bottom‑right) to toggle "Use real API" on/off
-4) Pick a Camera ID (via URL or UI) to connect; history loads via REST
-
-Backend expectations:
-- WebSocket endpoint: `/ws/live?cameraId=...` (returns JSON messages with `{ type: "alert", data }`)
-- REST endpoints used are implemented via `api.ts` helpers
-
-## Developer Tools
-- Dev Panel: simulate categories, toggle jitter FPS, clear alerts, force live burst, switch real vs mock
-- Dev Banner: shows connection state (mock/unstable) and developer mock setting
-
-## Releases
-- Phase‑1 Complete (planned v0.1.0): live WebSocket integration, automatic mock fallback, DevBanner, optimistic updates (ack/pin/note), export clip flow in LiveReview, URL‑synced filters, and assorted fixes.
-
-See CHANGELOG.md for details.
-
----
-
-## Setup & Run
-
-Requirements:
-- Node.js LTS (v18+ recommended) and npm
-
-Install and start:
-```sh
-npm install
-cp .env.example .env.local   # then set values
-npm run dev
+```
+frontend/
+├── src/
+│   ├── components/     # Reusable UI components
+│   ├── pages/         # Route-based page components
+│   ├── context/       # React context providers
+│   ├── hooks/         # Custom React hooks
+│   ├── lib/           # Utility functions and API client
+│   └── main.tsx       # Application entry point
+├── public/            # Static assets
+├── .env.example       # Environment variables template
+└── package.json       # Dependencies and scripts
 ```
 
-## Environment Variables
-Create `.env.local` with the following keys (see `.env.example`):
-- `API_BASE_URL=` HTTP API base (e.g., https://api.example.com)
-- `WS_BASE_URL=` WebSocket origin (e.g., wss://api.example.com) — optional; derived from API if omitted
-- `NEXT_PUBLIC_ENABLE_MOCKS=false` Force mock mode for live
-- `NEXT_PUBLIC_DEFAULT_CAMERA_ID=` Optional default camera id
+## 🎨 Tech Stack
 
-Notes:
-- The app resolves base URLs via `src/lib/api.ts` and WebSocket join helpers in `src/lib/ws.ts`.
-- A developer-only `/verify` page is available in development to test health and WS.
-- Use the in-app Dev Panel (bottom-right) on live pages to toggle real vs mock.
+- **React 18** - UI framework
+- **Vite** - Build tool and dev server
+- **TypeScript** - Type safety
+- **Tailwind CSS** - Styling
+- **Shadcn/ui** - Component library
+- **React Router** - Client-side routing
+- **Zustand** - State management
 
-## Scripts
-- `npm run dev` — start the dev server
-- `npm run build` — production build
-- `npm run preview` — preview the production build locally
-- `npm run lint` — run ESLint
+## 📱 Features
+
+- **Video Upload & Analysis** - Drag-and-drop video upload with real-time progress
+- **Detection Results** - Interactive results viewer with preview clips
+- **Live Monitoring** - Real-time detection alerts and filtering
+- **Configuration** - Adjustable detection parameters and thresholds
+- **Responsive Design** - Mobile-friendly interface
+
+## 🔧 Environment Variables
+
+Create a `.env` file based on `.env.example`:
+
+```env
+VITE_API_BASE_URL=http://127.0.0.1:8000
+```
+
+## 📦 Available Scripts
+
+```bash
+# Development
+npm run dev          # Start dev server
+npm run build        # Build for production
+npm run preview      # Preview production build
+
+# Code Quality
+npm run lint         # Run ESLint
+npm run type-check   # TypeScript type checking
+```
+
+## 🔗 Integration
+
+The frontend integrates with the Surveillance AI backend via:
+- **REST API** for video analysis and configuration
+- **WebSocket** for real-time detection alerts
+- **Static file serving** for preview clips and results
+
+## 🎯 Key Components
+
+- **LazyVideo** - Optimized video player with lazy loading
+- **DevPanel** - Development tools and debugging
+- **LiveStore** - Real-time state management
+- **UploadContext** - File upload handling
+
+## 🚀 Deployment
+
+```bash
+# Build for production
+npm run build
+
+# The dist/ folder contains the production build
+# Serve with any static file server
+```
+
+---
+
+*Part of the Surveillance AI Platform - Intelligent Video Analysis System*

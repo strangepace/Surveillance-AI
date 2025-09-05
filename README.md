@@ -1,246 +1,109 @@
-# 🎯 Surveillance AI Platform
+# Surveillance AI Platform
 
-An AI-powered video surveillance system with real-time analysis, live alerts, and a modern web interface. The platform combines a FastAPI backend with CLIP-based video analysis and a React frontend for seamless user experience.
+A comprehensive video surveillance system with AI-powered object detection using CLIP (ViT-B/32) and real-time analysis capabilities.
 
-## 🚀 Features
-
-### Backend (FastAPI)
-- **Video Analysis**: Upload videos and get detailed analysis using CLIP ViT-B/32 model
-- **Natural Language Prompts**: Ask questions about video content in plain English
-- **Real-time Processing**: Stream video analysis results with progress tracking
-- **Live Alert System**: WebSocket-based real-time alerts with REST API
-- **Export Functionality**: Generate downloadable clips and analysis reports
-- **Multi-Model Support**: CLIP (primary) and Google Video Intelligence (optional)
-- **GPU Acceleration**: CUDA support for faster processing
-
-### Frontend (React + TypeScript)
-- **Modern UI**: Built with React, TypeScript, and shadcn/ui components
-- **Real-time Updates**: Live alert streaming via WebSocket
-- **Responsive Design**: Works on desktop and mobile devices
-- **File Upload**: Drag-and-drop video upload with progress tracking
-- **Results Visualization**: Interactive display of analysis results
-- **Export Management**: Download clips and analysis reports
-
-## 🛠️ Tech Stack
-
-### Backend
-- **Framework**: FastAPI + Uvicorn
-- **AI Models**: OpenAI CLIP ViT-B/32, Google Video Intelligence API
-- **Language Models**: LangChain + OpenAI/Gemini for prompt interpretation
-- **Real-time**: WebSocket for live alerts
-- **Deployment**: Google Colab (GPU support) or local
-
-### Frontend
-- **Framework**: React 18 + TypeScript
-- **Build Tool**: Vite
-- **UI Library**: shadcn/ui + Tailwind CSS
-- **State Management**: TanStack Query + React Context
-- **Routing**: React Router DOM
-- **Real-time**: WebSocket client
-
-## 📁 Project Structure
+## 🏗️ Repository Layout
 
 ```
-Surveillance AI/
-├── backend-v3/              # FastAPI backend
-│   ├── app.py              # Main FastAPI application
-│   ├── analyzer.py         # Video analysis pipeline
-│   ├── prompt_interpreter.py # LangChain integration
-│   ├── clip_loader.py      # CLIP model management
-│   ├── frame_extractor.py  # Video frame extraction
-│   ├── alert_classifier.py # Detection classification
-│   ├── error_handler.py    # Error management
-│   ├── colab_compat.py     # Colab compatibility
-│   ├── requirements.txt    # Python dependencies
-│   └── config/            # Configuration files
-├── frontend/               # React frontend
-│   ├── src/               # Source code
-│   │   ├── components/    # UI components
-│   │   ├── pages/        # Page components
-│   │   ├── context/      # React contexts
-│   │   ├── lib/          # Utilities and API
-│   │   └── App.tsx       # Main app component
-│   ├── package.json      # Node.js dependencies
-│   └── vite.config.ts    # Vite configuration
-├── README.md             # This file
-├── .gitignore           # Git ignore rules
-└── start_backend.bat    # Windows backend startup script
+Surveillance-AI/
+├── frontend/          # React + Vite frontend application
+├── backend-v3/        # FastAPI backend with CLIP integration
+├── docs/              # Project documentation and status reports
+├── config/            # Configuration files
+└── README.md          # This file
 ```
 
-## 🚀 Quick Start
+## 🚀 Quickstart
 
 ### Prerequisites
-- **Backend**: Python 3.8+, pip, virtualenv
-- **Frontend**: Node.js 18+, npm/yarn
-- **Optional**: CUDA-capable GPU for faster processing
+- **Node.js 18+** for frontend development
+- **Python 3.10+** for backend services
+- **FFmpeg** installed and available in system PATH
 
 ### Backend Setup
 ```bash
-# Navigate to backend directory
 cd backend-v3
-
-# Create virtual environment
-python -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
-
-# Install dependencies
 pip install -r requirements.txt
-
-# Start the server
-python -m uvicorn app:app --host 127.0.0.1 --port 8000 --reload
+uvicorn app:app --host 127.0.0.1 --port 8000 --reload
 ```
 
 ### Frontend Setup
 ```bash
-# Navigate to frontend directory
 cd frontend
-
-# Install dependencies
-npm install
-
-# Start development server
+copy .env.example .env   # Windows
+# or cp .env.example .env   # Unix/Linux
+npm ci
 npm run dev
 ```
 
-### Environment Configuration
+## 🌐 URLs
+- **Frontend:** http://localhost:8080 (or http://127.0.0.1:8080)
+- **Backend API:** http://localhost:8000 (or http://127.0.0.1:8000)
+- **Backend Docs:** http://localhost:8000/docs
 
-#### Backend Environment Variables
-Create `backend-v3/.env`:
+## ⚙️ Environment Variables
+
+### Frontend (.env)
 ```env
-OPENAI_API_KEY=your_openai_key
-GOOGLE_APPLICATION_CREDENTIALS=path/to/credentials.json
+VITE_API_BASE_URL=http://127.0.0.1:8000
 ```
 
-#### Frontend Environment Variables
-Create `frontend/.env`:
-```env
-VITE_API_BASE_URL=http://localhost:8000
-VITE_WS_BASE_URL=ws://localhost:8000
-```
+### Backend Configuration
+- **CLIP Model:** Configured in `backend-v3/config/clip_config.yaml`
+- **Similarity Threshold:** Adjustable for detection sensitivity
+- **Frame Sampling:** Configurable extraction rate
 
-## 📡 API Endpoints
+## 📊 Logging
 
-### Core Analysis
-- `POST /analyze` - Upload and analyze video
-- `GET /status?jobId={id}` - Check analysis progress
-- `GET /results?jobId={id}` - Get analysis results
-- `GET /health` - Health check with device info
+The backend uses Python's `dictConfig` for comprehensive logging:
+- **Timestamped log files** saved in `backend-v3/logs/`
+- **Structured logging** with different levels (DEBUG, INFO, WARNING, ERROR)
+- **Real-time console output** for development
 
-### Export Functions
-- `POST /export/clips` - Start export job
-- `GET /export/status?exportId={id}` - Check export progress
-- `GET /downloads/{file}` - Download exported files
+## 🎬 Video Previews
 
-### Live Alert System
-- `GET /live/alerts` - Get alert history
-- `POST /live/acknowledge` - Acknowledge alerts
-- `POST /live/pin` - Pin/unpin alerts
-- `POST /live/note` - Add notes to alerts
-- `POST /live/export` - Export alert clips
-- `WebSocket /ws/live` - Real-time alert streaming
+The system generates browser-compatible video previews:
+- **Primary format:** H.264 MP4 (baseline profile, yuv420p)
+- **Fallback format:** VP9 WebM for broader compatibility
+- **Served via:** `/results` static file endpoint
+- **Generated by:** FFmpeg CLI (system installation required)
 
-### Static Files
-- `GET /previews/{file}` - Preview clips and thumbnails
-- `GET /downloads/{file}` - Exported files
+## 🔗 Integration Notes
 
-## 🔧 Development Workflow
+- **CORS:** Configured for localhost development
+- **API Base:** Frontend automatically falls back to `http://127.0.0.1:8000`
+- **Cache Busting:** Frontend implements cache-busting for video previews
+- **Real-time Updates:** WebSocket support for live analysis
 
-### Git Branch Strategy
-- `main` - Clean, minimal (not used for development)
-- `backend-v3.1` - Backend-only development
-- `frontend-v2` - Frontend-only development
+## 🌿 Branch Strategy
 
-### Working on Backend
-```bash
-git checkout backend-v3.1
-# Work on backend-v3/ files
-git add backend-v3/
-git commit -m "backend: new feature"
-git push origin backend-v3.1
-```
+- **`integrated-dev`**: Main development branch with latest integrated features
+- **`integrated-v1`**: Stable snapshot branch for releases
+- **`main`**: Stable baseline (unchanged)
+- **Feature branches**: Created from `integrated-dev` as needed
 
-### Working on Frontend
-```bash
-git checkout frontend-v2
-# Work on frontend/ files
-git add frontend/
-git commit -m "frontend: new component"
-git push origin frontend-v2
-```
+## 📈 Recent Milestones
 
-### Integration Testing
-1. Start backend: `cd backend-v3 && python -m uvicorn app:app --reload`
-2. Start frontend: `cd frontend && npm run dev`
-3. Open frontend at `http://localhost:3000`
-4. Test video upload and analysis workflow
+- ✅ **Frontend/Backend Integration**: Complete React + FastAPI integration
+- ✅ **Logging Refactor**: Migrated to `dictConfig` with timestamped files
+- ✅ **Preview Pipeline**: Migrated from OpenCV to FFmpeg for browser compatibility
+- ✅ **CLIP ViT-B/32**: Confirmed model integration with LAION weights
+- ✅ **Cross-platform Deployment**: Bundled FFmpeg support with fallbacks
 
-## 🚀 Deployment
+## 🐛 Known Issues / TODO
 
-### Backend Deployment (Google Colab)
-1. Upload backend files to Google Drive
-2. Open Colab notebook with GPU runtime
-3. Install dependencies and start server
-4. Use ngrok for public access: `!ngrok http 8000`
+- **Threshold Tuning**: Fine-tune similarity thresholds for optimal detection
+- **Prompt Templates**: Implement predefined prompt templates
+- **Live Feed**: Plan for real-time camera feed integration
+- **Performance**: Optimize frame processing for large videos
 
-### Frontend Deployment
-1. Build for production: `npm run build`
-2. Deploy `dist/` folder to hosting service
-3. Update environment variables for production API URL
+## 📄 License & Acknowledgements
 
-## 🔍 API Documentation
-
-- **Interactive Docs**: `http://localhost:8000/docs` (Swagger UI)
-- **ReDoc**: `http://localhost:8000/redoc`
-- **OpenAPI Spec**: `http://localhost:8000/openapi.json`
-
-## 🧪 Testing
-
-### Backend Tests
-```bash
-cd backend-v3
-python -m pytest tests/
-```
-
-### Frontend Tests
-```bash
-cd frontend
-npm test
-```
-
-## 📊 Performance
-
-- **GPU Acceleration**: Available via CUDA for faster CLIP processing
-- **Real-time Streaming**: WebSocket for live alerts
-- **Caching**: Model caching for faster subsequent analyses
-- **Compression**: Gzip compression for API responses
-
-## 🔐 Security
-
-- **CORS**: Configured for specific origins
-- **File Validation**: Video file type and size validation
-- **Error Handling**: Comprehensive error responses without sensitive data
-- **Environment Variables**: Secure API key management
-
-## 🤝 Contributing
-
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Test thoroughly
-5. Submit a pull request
-
-## 📄 License
-
-This project is licensed under the MIT License - see the LICENSE file for details.
-
-## 🆘 Support
-
-For issues and questions:
-1. Check the API documentation at `/docs`
-2. Review the logs in `backend-v3/content/logs/`
-3. Test with the provided example videos
-4. Open an issue on GitHub
+- **OpenCLIP/LAION**: CLIP model weights and implementation
+- **FFmpeg**: Video processing and transcoding
+- **FastAPI**: Backend framework
+- **React + Vite**: Frontend framework
 
 ---
 
-**Ready for production use with proper environment configuration and deployment setup!**
+*This project is part of the Surveillance AI platform development.*
