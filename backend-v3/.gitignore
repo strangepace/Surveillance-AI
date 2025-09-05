@@ -55,6 +55,7 @@ logs/
 .cache/
 tmp/
 temp/
+temp_frames/
 *.tmp
 *.temp
 
