@@ -2,11 +2,16 @@
 """
 Preview clip generation module for backend-v3.
 Generates short video clips around detection timestamps for review and analysis.
+Uses ffmpeg for browser-compatible video encoding (H.264 MP4 + VP9 WebM fallback).
 """
 import os
 import cv2
 import re
+import logging
 from typing import Tuple, Optional
+from utils.ffmpeg import transcode_segment, has_ffmpeg
+
+logger = logging.getLogger(__name__)
 
 
 def timestamp_to_seconds(timestamp: str) -> int:
@@ -52,7 +57,7 @@ def seconds_to_timestamp(seconds: float) -> str:
 def generate_preview_clip(video_path: str, output_dir: str, timestamp: str, 
                          clip_length: int = 5) -> str:
     """
-    Generate a preview clip around a detection timestamp.
+    Generate a preview clip around a detection timestamp using ffmpeg.
     
     Args:
         video_path (str): Path to the original video file
@@ -61,12 +66,12 @@ def generate_preview_clip(video_path: str, output_dir: str, timestamp: str,
         clip_length (int): Total length of preview in seconds (default = 5)
         
     Returns:
-        str: Full path to the saved preview clip
+        str: Full path to the saved preview clip (MP4 if available, WebM otherwise)
         
     Raises:
         FileNotFoundError: If video file doesn't exist
         ValueError: If timestamp format is invalid
-        RuntimeError: If video cannot be opened or processed
+        RuntimeError: If video cannot be processed
     """
     if not os.path.exists(video_path):
         raise FileNotFoundError(f"Video file not found: {video_path}")
@@ -77,81 +82,66 @@ def generate_preview_clip(video_path: str, output_dir: str, timestamp: str,
     # Convert timestamp to seconds
     target_seconds = timestamp_to_seconds(timestamp)
     
-    # Open video file
+    # Check ffmpeg availability
+    if not has_ffmpeg():
+        logger.warning("FFmpeg not available - preview clips cannot be generated")
+        raise RuntimeError("FFmpeg not available for video transcoding")
+    
+    # Get video properties using OpenCV (just for info, not for writing)
     cap = cv2.VideoCapture(video_path)
     if not cap.isOpened():
         raise RuntimeError(f"Could not open video file: {video_path}")
     
     # Get video properties
     fps = cap.get(cv2.CAP_PROP_FPS)
+    try:
+        fps_value = float(fps)
+    except Exception:
+        fps_value = 30.0  # safe default
+    
     total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
-    video_duration = total_frames / fps if fps > 0 else 0
-    
-    print(f"📹 Video info: {total_frames} frames, {fps:.2f} fps, {video_duration:.2f}s duration")
-    print(f"🎯 Target timestamp: {timestamp} ({target_seconds}s)")
-    print(f"⏱️  Generating {clip_length}s preview clip...")
-    
-    # Calculate clip start and end times
-    half_clip = clip_length // 2
-    clip_start_seconds = max(0, target_seconds - half_clip)
-    clip_end_seconds = min(video_duration, target_seconds + half_clip)
-    
-    # Adjust if near video boundaries
-    if clip_start_seconds == 0:
-        clip_end_seconds = min(clip_length, video_duration)
-    elif clip_end_seconds == video_duration:
-        clip_start_seconds = max(0, video_duration - clip_length)
-    
-    # Convert to frame numbers
-    start_frame = int(clip_start_seconds * fps)
-    end_frame = int(clip_end_seconds * fps)
-    
-    print(f"📅 Clip range: {seconds_to_timestamp(clip_start_seconds)} - {seconds_to_timestamp(clip_end_seconds)}")
-    print(f"🎞️  Frame range: {start_frame} - {end_frame}")
-    
-    # Create output filename
-    timestamp_clean = timestamp.replace(":", "_")
-    output_filename = f"clip_{timestamp_clean}.mp4"
-    output_path = os.path.join(output_dir, output_filename)
-    
-    # Get video codec and create VideoWriter
-    fourcc = cv2.VideoWriter_fourcc(*'mp4v')
-    width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
-    height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
-    out = cv2.VideoWriter(output_path, fourcc, fps, (width, height))
-    
-    if not out.isOpened():
-        raise RuntimeError(f"Could not create output video file: {output_path}")
-    
-    # Extract frames for the clip
-    cap.set(cv2.CAP_PROP_POS_FRAMES, start_frame)
-    frames_written = 0
-    
-    for frame_num in range(start_frame, end_frame):
-        ret, frame = cap.read()
-        if not ret:
-            break
-        
-        out.write(frame)
-        frames_written += 1
-        
-        # Log progress every 30 frames
-        if frames_written % 30 == 0:
-            print(f"  ✅ Written {frames_written} frames...")
-    
-    # Clean up
+    video_duration = total_frames / fps_value if fps_value > 0 else 0
     cap.release()
-    out.release()
     
-    # Verify the clip was created
-    if not os.path.exists(output_path):
-        raise RuntimeError(f"Preview clip was not created: {output_path}")
+    logger.info(f"📹 Video info: {total_frames} frames, {fps_value:.2f} fps, {video_duration:.2f}s duration")
+    logger.info(f"🎯 Target timestamp: {timestamp} ({target_seconds}s)")
     
-    actual_duration = frames_written / fps
-    print(f"🎉 Preview clip created: {output_path}")
-    print(f"📊 Actual duration: {actual_duration:.2f}s ({frames_written} frames)")
+    # Calculate clip boundaries
+    clip_half_length = clip_length / 2
+    start_seconds = max(0, target_seconds - clip_half_length)
+    end_seconds = min(video_duration, target_seconds + clip_half_length)
     
-    return output_path
+    logger.info(f"🎬 Clip boundaries: {start_seconds:.1f}s - {end_seconds:.1f}s")
+    
+    # Create output filenames
+    timestamp_clean = timestamp.replace(":", "_")
+    output_mp4 = os.path.join(output_dir, f"clip_{timestamp_clean}.mp4")
+    output_webm = os.path.join(output_dir, f"clip_{timestamp_clean}.webm")
+    
+    # Normalize paths to forward slashes for consistency
+    output_mp4 = output_mp4.replace("\\", "/")
+    output_webm = output_webm.replace("\\", "/")
+    
+    # Use ffmpeg to transcode the video segment
+    logger.info(f"🔄 Transcoding video segment using ffmpeg...")
+    mp4_success, webm_success = transcode_segment(
+        src=video_path,
+        start_sec=start_seconds,
+        duration=end_seconds - start_seconds,
+        out_mp4=output_mp4,
+        out_webm=output_webm,
+        codec="h264"
+    )
+    
+    # Determine which file to return
+    if mp4_success:
+        logger.info(f"✅ Preview clip created (H.264 MP4): {output_mp4}")
+        return output_mp4
+    elif webm_success:
+        logger.info(f"✅ Preview clip created (VP9 WebM): {output_webm}")
+        return output_webm
+    else:
+        raise RuntimeError(f"Failed to generate preview clip: neither MP4 nor WebM was created")
 
 
 def generate_preview_clips_batch(video_path: str, output_dir: str, 
@@ -216,4 +206,4 @@ def get_clip_info(clip_path: str) -> dict:
         "duration": duration,
         "duration_formatted": seconds_to_timestamp(int(duration)),
         "file_size_mb": os.path.getsize(clip_path) / (1024 * 1024)
-    } 
+    }

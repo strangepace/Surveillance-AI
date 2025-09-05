@@ -8,6 +8,7 @@ import os
 import json
 import hashlib
 import time
+import logging
 from typing import List, Dict, Any, Optional, Tuple
 from dataclasses import dataclass, asdict
 import torch
@@ -24,6 +25,9 @@ from frame_extractor import extract_frames
 from prompt_interpreter import interpret_multiple_prompts
 from clip_generator import generate_preview_clip
 from alert_classifier import classify_detections, get_alert_summary
+
+# Set up logging
+logger = logging.getLogger("analyzer")
 
 
 @dataclass
@@ -203,9 +207,9 @@ class VideoAnalyzer:
         Returns:
             str: Path to results JSON file
         """
-        print(f"Starting video analysis: {video_path}")
-        print(f"Prompts: {prompts}")
-        print(f"Output directory: {output_dir}")
+        logger.info(f"Starting video analysis: {video_path}")
+        logger.info(f"Prompts: {prompts}")
+        logger.info(f"Output directory: {output_dir}")
         
         # Create output directories
         os.makedirs(output_dir, exist_ok=True)
@@ -214,7 +218,7 @@ class VideoAnalyzer:
         
         # Generate video ID
         video_id = self.generate_video_id(video_path)
-        print(f"Video ID: {video_id}")
+        logger.info(f"Video ID: {video_id}")
 
         # Prepare temp frame directory
         temp_frame_dir = os.path.join("temp_frames", video_id)
@@ -222,7 +226,7 @@ class VideoAnalyzer:
 
         try:
             # Step 1: Interpret prompts into structured categories
-            print("\nStep 1: Interpreting prompts...")
+            logger.info("\nStep 1: Interpreting prompts...")
             prompt_categories = await interpret_multiple_prompts(prompts)
             
             # Extract meaningful labels from prompts
@@ -238,34 +242,42 @@ class VideoAnalyzer:
                     all_labels.append(prompt)
             
             all_labels = list(set(all_labels))  # Remove duplicates
-            print(f"   Extracted {len(all_labels)} unique labels: {all_labels}")
+            logger.info(f"   Extracted {len(all_labels)} unique labels: {all_labels}")
 
             # Step 2: Extract frames from video
-            print("\nStep 2: Extracting frames...")
-            frames_data = extract_frames(video_path, temp_frame_dir)
+            logger.info("\nStep 2: Extracting frames...")
+            # DIAGNOSTIC: Use sampling rate from config
+            sampling_rate = self.config.get('frame_extraction', {}).get('sampling_rate', 5)
+            frames_data = extract_frames(video_path, temp_frame_dir, sampling_rate=sampling_rate)
             # frames_data is a list of dicts with keys: frame_path, timestamp, timestamp_seconds, frame_number
             frames = [cv2.imread(fd['frame_path']) for fd in frames_data]
             timestamps = [fd['timestamp_seconds'] for fd in frames_data]
-            print(f"   Extracted {len(frames)} frames")
+            logger.info(f"   Extracted {len(frames)} frames")
 
             # Step 3: Encode text prompts with CLIP
-            print("\nStep 3: Encoding text prompts...")
+            logger.info("\nStep 3: Encoding text prompts...")
             text_features = self.encode_text_prompts(all_labels)
-            print(f"   Encoded {len(all_labels)} text prompts")
+            logger.info(f"   Encoded {len(all_labels)} text prompts")
 
             # Step 4: Process frames in batches
-            print("\nStep 4: Processing frames...")
+            logger.info("\nStep 4: Processing frames...")
             batch_size = 8  # Process frames in batches for efficiency
             detection_results = []
+            
+            # DIAGNOSTIC: Track similarity statistics
+            all_similarities = []
+            frames_processed = 0
+            
             for i in range(0, len(frames), batch_size):
                 batch_frames = frames[i:i + batch_size]
                 batch_timestamps = timestamps[i:i + batch_size]
-                print(f"   Processing batch {i//batch_size + 1}/{(len(frames) + batch_size - 1)//batch_size}")
+                logger.info(f"   Processing batch {i//batch_size + 1}/{(len(frames) + batch_size - 1)//batch_size}")
                 # Encode batch of frames
                 image_features = self.encode_frames(batch_frames)
                 # Compare each frame with each text prompt
                 for j, (frame, timestamp) in enumerate(zip(batch_frames, batch_timestamps)):
                     frame_idx = i + j
+                    frames_processed += 1
                     
                     # Calculate similarities for this frame
                     frame_features = image_features[j:j+1]
@@ -275,10 +287,12 @@ class VideoAnalyzer:
                         text_feature = text_features[k:k+1]
                         similarity = self.calculate_similarity(frame_features, text_feature)
                         similarities.append((label, similarity))
+                        all_similarities.append(similarity)  # DIAGNOSTIC: collect all similarities
                     
-                    # Debug: Print top 3 similarity scores for this frame
-                    top_similarities = sorted(similarities, key=lambda x: x[1], reverse=True)[:3]
-                    print(f"[DEBUG] Frame {frame_idx} top similarities: {top_similarities}")
+                    # DIAGNOSTIC: Log every ~30 frames
+                    if frames_processed % 30 == 0:
+                        top_similarities = sorted(similarities, key=lambda x: x[1], reverse=True)[:3]
+                        logger.debug(f"frame={frame_idx} ts={timestamp:.1f}s top3={top_similarities}")
                     
                     # Find matches above threshold
                     matches = [(label, sim) for label, sim in similarities if sim >= self.similarity_threshold]
@@ -311,13 +325,13 @@ class VideoAnalyzer:
                         
                         detection_results.append(result)
                         
-                        print(f"      ✅ Match at {timestamp_str}: {labels} (confidence: {confidence:.3f})")
+                        logger.info(f"✅ Match at {timestamp_str}: {labels} (confidence: {confidence:.3f})")
             
             # Step 5: Save results to JSON
-            print(f"\nStep 5: Saving results...")
+            logger.info(f"\nStep 5: Saving results...")
             
             # Step 5.1: Classify detections into alert categories
-            print(f"Step 5.1: Classifying alerts...")
+            logger.info(f"Step 5.1: Classifying alerts...")
             
             # Convert DetectionResult objects to dictionaries for alert classifier
             detection_dicts = []
@@ -336,12 +350,15 @@ class VideoAnalyzer:
             classified_detections = classify_detections(detection_dicts)
             alert_summary = get_alert_summary(classified_detections)
             
-            print(f"   📊 Alert Summary:")
-            print(f"      Total detections: {alert_summary['total_detections']}")
-            print(f"      Categories: {alert_summary['categories']}")
-            print(f"      Priorities: {alert_summary['priorities']}")
+            logger.info(f"📊 Alert Summary:")
+            logger.info(f"   Total detections: {alert_summary['total_detections']}")
+            logger.info(f"   Categories: {alert_summary['categories']}")
+            logger.info(f"   Priorities: {alert_summary['priorities']}")
             
-            results_file = os.path.join(output_dir, f"video_{video_id}.json")
+            # Save JSON results in organized directory
+            json_dir = os.path.join(output_dir, "json")
+            os.makedirs(json_dir, exist_ok=True)
+            results_file = os.path.join(json_dir, f"video_{video_id}.json")
             
             # Convert results to JSON-serializable format
             json_results = []
@@ -367,8 +384,16 @@ class VideoAnalyzer:
             with open(results_file, 'w') as f:
                 json.dump(final_results, f, indent=2)
             
-            print(f"   Saved {len(classified_detections)} detections to {results_file}")
-            print(f"🎉 Analysis complete! Found {len(classified_detections)} matches.")
+            logger.info(f"Saved {len(classified_detections)} detections to {results_file}")
+            logger.info(f"🎉 Analysis complete! Found {len(classified_detections)} matches.")
+            
+            # DIAGNOSTIC: Log similarity statistics summary
+            if all_similarities:
+                sim_min = min(all_similarities)
+                sim_max = max(all_similarities)
+                sim_mean = sum(all_similarities) / len(all_similarities)
+                logger.debug(f"frames_processed={frames_processed} detections_total={len(classified_detections)} sim_min={sim_min:.3f} sim_mean={sim_mean:.3f} sim_max={sim_max:.3f}")
+            
             return results_file
         finally:
             # Clean up temp frame directory
@@ -432,8 +457,10 @@ class VideoAnalyzer:
             except Exception as e:
                 print(f"   ⚠️  Failed to generate preview for {timestamp}: {e}")
         
-        # Save results
-        results_file = os.path.join(output_dir, f"video_{video_id}.json")
+        # Save results in organized directory
+        json_dir = os.path.join(output_dir, "json")
+        os.makedirs(json_dir, exist_ok=True)
+        results_file = os.path.join(json_dir, f"video_{video_id}.json")
         
         json_results = [asdict(result) for result in detection_results]
         with open(results_file, 'w') as f:
@@ -456,7 +483,8 @@ async def analyze_video(video_path: str, prompts: List[str], output_dir: str = "
     Returns:
         tuple: (results_dict, json_path)
     """
-    print("DEBUG: Entered analyze_video function")
+    logger = logging.getLogger("analyzer")
+    logger.debug("DEBUG: Entered analyze_video function")
     
     try:
         # Validate inputs

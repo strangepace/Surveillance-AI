@@ -14,8 +14,8 @@ tqdm
 python-dotenv
 langchain==0.0.350
 langchain-community==0.0.10
-langchain-openai==0.0.5
-openai==1.3.5
+langchain-openai>=0.0.5
+openai>=1.3.5
 google-cloud-videointelligence==2.11.1
 google-generativeai==0.3.2
 psutil==5.9.8

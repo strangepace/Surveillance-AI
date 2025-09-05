@@ -1,16 +1,42 @@
-# Byte-compiled / optimized / DLL files
+# Backend-specific .gitignore for backend-v3.1 branch
+# This file excludes frontend files when working on backend branch
+
+# Exclude frontend directory completely
+/frontend/
+frontend/
+
+# Exclude frontend-related files in root
+package.json
+package-lock.json
+bun.lockb
+vite.config.ts
+tsconfig*.json
+tailwind.config.ts
+postcss.config.js
+eslint.config.js
+components.json
+index.html
+CHANGELOG.md
+
+# Exclude frontend build artifacts
+dist/
+dist-ssr/
+node_modules/
+
+# Exclude frontend environment files
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Keep backend-specific ignores
 __pycache__/
 *.py[cod]
 *$py.class
-
-# C extensions
 *.so
-
-# Distribution / packaging
 .Python
 build/
 develop-eggs/
-dist/
 downloads/
 eggs/
 .eggs/
@@ -19,65 +45,117 @@ lib64/
 parts/
 sdist/
 var/
+wheels/
 *.egg-info/
 .installed.cfg
 *.egg
+MANIFEST
 
-# Installer logs
-pip-log.txt
-pip-delete-this-directory.txt
-
-# Unit test / coverage reports
-htmlcov/
-.tox/
-.nox/
-.coverage
-.coverage.*
-.cache
-nosetests.xml
-coverage.xml
-*.cover
-.hypothesis/
-.pytest_cache/
-
-# Jupyter Notebook
-.ipynb_checkpoints
-
-# PyCharm
-.idea/
-*.iml
-
-# VS Code
-.vscode/
-
-# Environment variables / secrets
-.env
-.env.*
-*.env
-
-# Virtual environments
+# Virtual Environment
 venv/
-ENV/
 env/
+ENV/
+env.bak/
+venv.bak/
 
-# Video/analysis artifacts
-content/uploads/
-results/
-preview_clips/
-test_results/
-final_test_results/
-complex_test_results/
-pipeline_test_results/
-temp_dir/
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
 
-# Mac/Windows system files
+# OS
 .DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
 Thumbs.db
+
+# Video and Media Files
+*.mp4
+*.avi
+*.mov
+*.mkv
+*.wmv
+*.flv
+*.webm
+*.m4v
+*.3gp
+*.mpg
+*.mpeg
+
+# Extracted Frames and Images
+*.jpg
+*.jpeg
+*.png
+*.gif
+*.bmp
+*.tiff
+*.webp
+temp_frames/
+frames/
+uploads/
+content/uploads/
+content/frames/
 
 # Logs
 *.log
+logs/
+*.log.*
+content/logs/
 
-# Misc
-*.bak
+# Cache and Temporary Files
+.cache/
+tmp/
+temp/
 *.tmp
-archive/ 
+*.temp
+
+# Model Files and Weights
+*.pth
+*.pt
+*.ckpt
+*.safetensors
+models/
+weights/
+
+# Results and Output
+results/
+test_results/
+pipeline_test_results/
+complex_test_results/
+final_test_results/
+preview_clips/
+test_clips/
+content/results/
+
+# Environment Variables
+.env
+.env.local
+.env.production
+.env.staging
+
+# Credentials
+credentials.json
+*.key
+*.pem
+
+# Large Files
+*.zip
+*.tar.gz
+*.rar
+*.7z
+
+# Colab specific
+/content/
+/root/
+
+# Jupyter Notebooks
+*.ipynb
+.ipynb_checkpoints/
+
+# Documentation build
+docs/_build/ 

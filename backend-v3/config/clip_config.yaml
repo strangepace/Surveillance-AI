@@ -6,7 +6,7 @@ device:
 frame_extraction:
   output_dir: content/frames
   resize: false
-  sampling_rate: 30
+  sampling_rate: 5    # DIAGNOSTIC: high frame density for testing
 frame_size:
 - 224
 - 224
@@ -14,8 +14,7 @@ model_name: ViT-B-32
 preview_clip:
   length: 3
   output_dir: results/previews
-sampling_rate: 30
-similarity_threshold: 0.7
+similarity_threshold: 0.21   # ADJUSTED: more realistic threshold based on actual similarity ranges
 
 # Colab Compatibility Settings
 paths:

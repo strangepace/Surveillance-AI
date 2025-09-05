@@ -57,7 +57,8 @@ def get_clip_model(config_path=None, device=None):
     
     try:
         if backend == 'open_clip':
-            model, _, preprocess = open_clip.create_model_and_transforms(model_name, pretrained='laion2b_s34b_b79k')
+            # OpenCLIP 2.32.0 returns 3 values: model, preprocess, preprocess_val
+            model, preprocess, _ = open_clip.create_model_and_transforms(model_name, pretrained='laion2b_s34b_b79k')
             tokenizer = open_clip.get_tokenizer(model_name)
         else:
             raise NotImplementedError(f"Backend '{backend}' is not supported yet. Use 'open_clip'.")

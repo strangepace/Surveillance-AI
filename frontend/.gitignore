@@ -1,0 +1,52 @@
+# Frontend-specific .gitignore for frontend-v2 branch
+# This file excludes backend files when working on frontend branch
+
+# Exclude backend directory completely
+/backend-v3/
+backend-v3/
+
+# Exclude backend-related files in root
+start_backend.bat
+*.py
+*.pyc
+__pycache__/
+requirements.txt
+*.yaml
+*.yml
+
+# Exclude backend content directories
+content/
+config/
+
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# Node modules
+node_modules
+dist
+dist-ssr
+*.local
+
+# Environment files
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Editor directories and files
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
