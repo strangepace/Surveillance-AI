@@ -1,6 +1,6 @@
-#!/usr/bin/env python3
+﻿#!/usr/bin/env python3
 """
-Comprehensive test script to validate backend-v3 with real test videos.
+Comprehensive test script to validate backend with real test videos.
 Tests naani.mp4 and Feds.mp4 with meaningful prompts.
 """
 import requests
@@ -127,7 +127,7 @@ def test_video_analysis(video_path: str, prompts: str, video_name: str):
 
 def main():
     """Run comprehensive video analysis tests."""
-    print("🎯 Backend-v3 Comprehensive Video Analysis Test")
+    print("🎯 backend Comprehensive Video Analysis Test")
     print("=" * 70)
     
     # Check server status

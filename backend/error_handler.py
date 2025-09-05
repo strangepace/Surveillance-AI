@@ -1,6 +1,6 @@
-#!/usr/bin/env python3
+﻿#!/usr/bin/env python3
 """
-Error Handling Module for Surveillance AI Backend-v3
+Error Handling Module for Surveillance AI backend
 Provides standardized error handling, logging, and response formatting.
 """
 import os

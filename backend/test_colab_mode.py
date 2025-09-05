@@ -1,6 +1,6 @@
-#!/usr/bin/env python3
+﻿#!/usr/bin/env python3
 """
-Colab Mode Test for Surveillance AI Backend-v3
+Colab Mode Test for Surveillance AI backend
 Tests Colab compatibility and path handling.
 """
 import os

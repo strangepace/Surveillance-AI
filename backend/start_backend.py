@@ -1,6 +1,6 @@
-#!/usr/bin/env python3
+﻿#!/usr/bin/env python3
 """
-Startup script for backend-v3 that automatically configures FFmpeg environment.
+Startup script for backend that automatically configures FFmpeg environment.
 This ensures FFmpeg is available regardless of system PATH configuration.
 """
 import os
@@ -12,7 +12,7 @@ def setup_ffmpeg_environment():
     """Setup FFmpeg environment automatically."""
     print("🔧 Setting up FFmpeg environment...")
     
-    # Get the current directory (backend-v3)
+    # Get the current directory (backend)
     current_dir = os.path.dirname(os.path.abspath(__file__))
     
     # Check for bundled FFmpeg
@@ -91,3 +91,4 @@ def start_server():
 
 if __name__ == "__main__":
     start_server()
+

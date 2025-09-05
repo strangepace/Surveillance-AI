@@ -1,6 +1,6 @@
-#!/usr/bin/env python3
+﻿#!/usr/bin/env python3
 """
-Health check test for backend-v3.
+Health check test for backend.
 """
 import requests
 

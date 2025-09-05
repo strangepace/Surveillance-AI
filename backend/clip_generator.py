@@ -1,6 +1,6 @@
-# backend_v3/clip_generator.py
+﻿# backend_v3/clip_generator.py
 """
-Preview clip generation module for backend-v3.
+Preview clip generation module for backend.
 Generates short video clips around detection timestamps for review and analysis.
 Uses ffmpeg for browser-compatible video encoding (H.264 MP4 + VP9 WebM fallback).
 """
@@ -207,3 +207,4 @@ def get_clip_info(clip_path: str) -> dict:
         "duration_formatted": seconds_to_timestamp(int(duration)),
         "file_size_mb": os.path.getsize(clip_path) / (1024 * 1024)
     }
+

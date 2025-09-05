@@ -1,7 +1,7 @@
-# Surveillance AI — Backend-v3
+﻿# Surveillance AI — backend
 
 ## Overview
-Surveillance AI backend-v3 is a FastAPI-powered video analysis system designed for intelligent surveillance, event detection, and prompt-based video search. It processes uploaded videos, interprets natural language prompts, and returns structured detection results with preview clips.
+Surveillance AI backend is a FastAPI-powered video analysis system designed for intelligent surveillance, event detection, and prompt-based video search. It processes uploaded videos, interprets natural language prompts, and returns structured detection results with preview clips.
 
 ---
 
@@ -44,9 +44,9 @@ pip install -r requirements.txt
 ---
 
 ## Setup & Running the Server
-1. **Navigate to backend-v3 directory:**
+1. **Navigate to backend directory:**
    ```sh
-   cd backend-v3
+   cd backend
    ```
 2. **Install dependencies:**
    ```sh
@@ -93,7 +93,7 @@ print(response.json())
 
 ## Project Structure
 ```
-backend-v3/
+backend/
 ├── app.py                # FastAPI app
 ├── analyzer.py           # Main analyzer logic
 ├── analyzer_simple.py    # Simple analyzer (no CLIP)
@@ -116,7 +116,7 @@ backend-v3/
 ---
 
 ## Troubleshooting
-- **Import/module errors:** Always run the server from inside `backend-v3`.
+- **Import/module errors:** Always run the server from inside `backend`.
 - **Server not responding:** Check terminal for errors, ensure dependencies are installed.
 - **Large file errors:** Check system memory and logs for crash details.
 - **Logs:** All analysis and errors are printed to the terminal.

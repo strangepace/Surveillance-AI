@@ -1,6 +1,6 @@
-# backend_v3/prompt_interpreter.py
+﻿# backend_v3/prompt_interpreter.py
 """
-LangChain-powered prompt interpreter for backend-v3.
+LangChain-powered prompt interpreter for backend.
 Converts natural language prompts into structured detection categories.
 """
 

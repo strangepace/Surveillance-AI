@@ -1,6 +1,6 @@
-# backend_v3/analyzer.py
+﻿# backend_v3/analyzer.py
 """
-Full analyzer pipeline for backend-v3.
+Full analyzer pipeline for backend.
 Integrates frame extraction, CLIP loading, prompt interpretation, detection, and preview generation.
 Enhanced with error handling and Colab compatibility.
 """

@@ -1,6 +1,6 @@
-# backend_v3/frame_extractor.py
+﻿# backend_v3/frame_extractor.py
 """
-Video frame extraction module for backend-v3.
+Video frame extraction module for backend.
 Extracts frames from videos with configurable sampling rate and saves as JPG files.
 """
 import os

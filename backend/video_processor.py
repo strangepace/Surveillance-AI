@@ -1,6 +1,6 @@
-# backend_v3/video_processor.py
+﻿# backend_v3/video_processor.py
 """
-Video processor module for backend-v3.
+Video processor module for backend.
 Supports both Google Video Intelligence API and CLIP models.
 """
 

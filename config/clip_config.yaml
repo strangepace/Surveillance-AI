@@ -1,4 +1,4 @@
-# CLIP Configuration for Surveillance AI backend-v3
+# CLIP Configuration for Surveillance AI backend
 name: "ViT-B-32"
 backend: "open_clip"
 similarity_threshold: 0.85

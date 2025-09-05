@@ -1,6 +1,6 @@
-#!/usr/bin/env python3
+﻿#!/usr/bin/env python3
 """
-Error Handling Test for Surveillance AI Backend-v3
+Error Handling Test for Surveillance AI backend
 Tests various error scenarios and validates error responses.
 """
 import os

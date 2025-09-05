@@ -1,6 +1,6 @@
-#!/usr/bin/env python3
+﻿#!/usr/bin/env python3
 """
-Colab Compatibility Module for Surveillance AI Backend-v3
+Colab Compatibility Module for Surveillance AI backend
 Handles path differences between local and Google Colab environments.
 """
 import os

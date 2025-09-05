@@ -1,4 +1,4 @@
-# 🚀 Deployment Guide - Surveillance AI Backend
+﻿# 🚀 Deployment Guide - Surveillance AI Backend
 
 ## 🌟 **Cross-Platform Compatibility**
 
@@ -7,7 +7,7 @@ This backend is designed to work **anywhere** without manual FFmpeg installation
 ## 📁 **Project Structure**
 
 ```
-backend-v3/
+backend/
 ├── ffmpeg/                    # Bundled FFmpeg binaries
 │   ├── windows/bin/          # Windows executables
 │   ├── linux/bin/            # Linux executables
@@ -23,19 +23,19 @@ backend-v3/
 
 ### **Option 1: Python Script (Recommended)**
 ```bash
-cd backend-v3
+cd backend
 python start_backend.py
 ```
 
 ### **Option 2: Windows Batch File**
 ```bash
-cd backend-v3
+cd backend
 start_backend.bat
 ```
 
 ### **Option 3: Direct Uvicorn (Legacy)**
 ```bash
-cd backend-v3
+cd backend
 python -m uvicorn app:app --host 127.0.0.1 --port 8000 --reload
 ```
 
@@ -69,16 +69,16 @@ python -m uvicorn app:app --host 127.0.0.1 --port 8000 --reload
 ### **Local Development**
 ```bash
 git clone <your-repo>
-cd backend-v3
+cd backend
 python start_backend.py
 ```
 
 ### **Production Server**
 ```bash
 # Copy project to server
-scp -r backend-v3 user@server:/opt/
+scp -r backend user@server:/opt/
 ssh user@server
-cd /opt/backend-v3
+cd /opt/backend
 python start_backend.py
 ```
 
@@ -86,7 +86,7 @@ python start_backend.py
 ```dockerfile
 FROM python:3.9
 COPY . /app
-WORKDIR /app/backend-v3
+WORKDIR /app/backend
 RUN pip install -r requirements.txt
 CMD ["python", "start_backend.py"]
 ```
@@ -143,7 +143,7 @@ pip install -r requirements.txt
 ```bash
 # 1. Clone/copy project
 git clone <your-repo>
-cd backend-v3
+cd backend
 
 # 2. Install Python dependencies
 pip install -r requirements.txt
@@ -158,3 +158,4 @@ python start_backend.py
 ```
 
 **That's it! No manual FFmpeg installation, no PATH configuration, no platform-specific setup.** 🎉
+

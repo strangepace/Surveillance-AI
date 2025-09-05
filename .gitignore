@@ -1,4 +1,4 @@
-# --- OS / Editor ---
+﻿# --- OS / Editor ---
 .DS_Store
 Thumbs.db
 *.swp
@@ -48,7 +48,7 @@ temp/
 **/*.ts
 
 # --- FFmpeg binaries (large files) ---
-backend-v3/ffmpeg/
+backend/ffmpeg/
 **/*.exe
 **/*.dll
 

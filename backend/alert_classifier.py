@@ -1,6 +1,6 @@
-#!/usr/bin/env python3
+﻿#!/usr/bin/env python3
 """
-Alert classification system for backend-v3.
+Alert classification system for backend.
 Categorizes detections into security, safety, crowd, traffic, and suspicious alerts.
 """
 import re

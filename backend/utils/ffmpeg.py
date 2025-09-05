@@ -1,6 +1,6 @@
-#!/usr/bin/env python3
+﻿#!/usr/bin/env python3
 """
-FFmpeg utility module for backend-v3.
+FFmpeg utility module for backend.
 Provides browser-compatible video transcoding using ffmpeg CLI.
 Cross-platform compatible with bundled binaries and automatic fallbacks.
 """
@@ -244,3 +244,4 @@ def setup_ffmpeg_environment():
     else:
         logger.warning("⚠️  FFmpeg not available - preview generation will be limited")
         return False
+

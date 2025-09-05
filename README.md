@@ -1,4 +1,4 @@
-# Surveillance AI Platform
+﻿# Surveillance AI Platform
 
 A comprehensive video surveillance system with AI-powered object detection using CLIP (ViT-B/32) and real-time analysis capabilities.
 
@@ -7,7 +7,7 @@ A comprehensive video surveillance system with AI-powered object detection using
 ```
 Surveillance-AI/
 ├── frontend/          # React + Vite frontend application
-├── backend-v3/        # FastAPI backend with CLIP integration
+├── backend/        # FastAPI backend with CLIP integration
 ├── docs/              # Project documentation and status reports
 ├── config/            # Configuration files
 └── README.md          # This file
@@ -22,7 +22,7 @@ Surveillance-AI/
 
 ### Backend Setup
 ```bash
-cd backend-v3
+cd backend
 pip install -r requirements.txt
 uvicorn app:app --host 127.0.0.1 --port 8000 --reload
 ```
@@ -49,14 +49,14 @@ VITE_API_BASE_URL=http://127.0.0.1:8000
 ```
 
 ### Backend Configuration
-- **CLIP Model:** Configured in `backend-v3/config/clip_config.yaml`
+- **CLIP Model:** Configured in `backend/config/clip_config.yaml`
 - **Similarity Threshold:** Adjustable for detection sensitivity
 - **Frame Sampling:** Configurable extraction rate
 
 ## 📊 Logging
 
 The backend uses Python's `dictConfig` for comprehensive logging:
-- **Timestamped log files** saved in `backend-v3/logs/`
+- **Timestamped log files** saved in `backend/logs/`
 - **Structured logging** with different levels (DEBUG, INFO, WARNING, ERROR)
 - **Real-time console output** for development
 

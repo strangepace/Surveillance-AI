@@ -1,6 +1,6 @@
-#!/usr/bin/env python3
+﻿#!/usr/bin/env python3
 """
-Test CUDA/GPU device management for backend-v3.
+Test CUDA/GPU device management for backend.
 """
 import torch
 from clip_loader import get_clip_model

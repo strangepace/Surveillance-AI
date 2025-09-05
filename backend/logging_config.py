@@ -1,4 +1,4 @@
-# backend-v3/logging_config.py
+﻿# backend/logging_config.py
 import os, logging, logging.config, datetime
 
 def ensure_logs_dir(base_dir: str) -> str:
@@ -75,3 +75,4 @@ def setup_logging(base_dir: str = None, level: str = "DEBUG") -> str:
 
     logging.getLogger(__name__).info("Logging configured. File: %s", log_path)
     return log_path
+
