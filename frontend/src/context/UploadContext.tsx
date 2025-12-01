@@ -22,6 +22,10 @@ interface UploadContextValue {
   metadata: VideoMetadata | null;
   setFileWithMetadata: (file: File, metadata: VideoMetadata) => void;
 
+  // Analysis range
+  analysisRange: [number, number]; // [startS, endS]
+  setAnalysisRange: (range: [number, number]) => void;
+
   // M2 config state
   prompts: string[];
   model: AnalyzeModel;
@@ -44,6 +48,7 @@ const CONFIG_KEY = "surv-ai:m2-config";
 export const UploadProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [file, setFile] = useState<File | null>(null);
   const [metadata, setMetadata] = useState<VideoMetadata | null>(null);
+  const [analysisRange, setAnalysisRange] = useState<[number, number]>([0, 30]);
 
 // Config state with session persistence
 const [prompts, setPrompts] = useState<string[]>([]);
@@ -100,6 +105,8 @@ const value = useMemo(
     file,
     metadata,
     setFileWithMetadata,
+    analysisRange,
+    setAnalysisRange,
     prompts,
     model,
     mode,
@@ -110,7 +117,7 @@ const value = useMemo(
     setJobId,
     clear,
   }),
-  [file, metadata, prompts, model, mode, jobId]
+  [file, metadata, analysisRange, prompts, model, mode, jobId]
 );
 
   return <UploadContext.Provider value={value}>{children}</UploadContext.Provider>;

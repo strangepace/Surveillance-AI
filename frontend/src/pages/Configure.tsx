@@ -14,6 +14,7 @@ import { toast } from "sonner";
 import { Brain, Zap, Move, Link as LinkIcon, PersonStanding, X, Info } from "lucide-react";
 import { cn } from "@/lib/utils";
 import PromptChipsInput from "@/components/PromptChipsInput";
+import { formatHMS } from "@/lib/time";
 
 const MODES: { key: AnalyzeMode; name: string; desc: string; Icon: React.ComponentType<any> }[] = [
   { key: "FullScan", name: "FullScan", desc: "Deep scan of every frame", Icon: Brain },
@@ -25,7 +26,7 @@ const MODES: { key: AnalyzeMode; name: string; desc: string; Icon: React.Compone
 
 const Configure: React.FC = () => {
   const navigate = useNavigate();
-  const { file, prompts, setPrompts, mode, setMode, model, setModel, setJobId } = useUpload();
+  const { file, prompts, setPrompts, mode, setMode, model, setModel, setJobId, analysisRange } = useUpload();
 
   const [submitting, setSubmitting] = useState(false);
 
@@ -62,6 +63,11 @@ const Configure: React.FC = () => {
       fd.append("prompts", (prompts || []).join(", "));
       fd.append("model", (model || "clip") as AnalyzeModel);
       fd.append("mode", mode as AnalyzeMode);
+      
+      // Add analysis window parameters
+      const [startS, endS] = analysisRange;
+      fd.append("start_ts", formatHMS(startS));
+      fd.append("end_ts", formatHMS(endS));
 
       const resp = await api.apiFetch<any>("/analyze", { method: "POST", body: fd, timeoutMs: 30000 });
       if (resp?.error_type) {

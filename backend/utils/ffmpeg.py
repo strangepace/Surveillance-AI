@@ -233,6 +233,91 @@ def get_video_info(video_path: str) -> Optional[dict]:
         return None
 
 
+def clip_video_segment(
+    src: str, 
+    start_sec: float, 
+    end_sec: float, 
+    output_path: str,
+    codec: str = "copy"
+) -> bool:
+    """
+    Clip a video segment using FFmpeg.
+    
+    Args:
+        src: Source video file path
+        start_sec: Start time in seconds
+        end_sec: End time in seconds
+        output_path: Output file path
+        codec: Codec to use ("copy" for fast, "libx264" for reencode)
+        
+    Returns:
+        True if successful, False otherwise
+    """
+    if not has_ffmpeg():
+        logger.error("FFmpeg not available for video clipping")
+        return False
+    
+    ffmpeg_exe = get_ffmpeg_system_path() or get_ffmpeg_bundled_path()
+    if not ffmpeg_exe:
+        logger.error("Could not find FFmpeg executable")
+        return False
+    
+    duration = end_sec - start_sec
+    
+    try:
+        if codec == "copy":
+            # Fast copy mode - try first
+            cmd = [
+                ffmpeg_exe, '-y', '-loglevel', 'error',
+                '-ss', str(start_sec),
+                '-t', str(duration),
+                '-i', src,
+                '-c', 'copy',  # Copy streams without reencoding
+                output_path
+            ]
+            
+            logger.info(f"FFmpeg clip command (copy): {' '.join(cmd)}")
+            result = subprocess.run(cmd, capture_output=True, text=True, timeout=300)
+            
+            if result.returncode == 0 and os.path.exists(output_path):
+                logger.info(f"Video clipped successfully with copy codec: {output_path}")
+                return True
+            else:
+                logger.warning(f"Copy codec failed, falling back to reencode: {result.stderr}")
+        
+        # Fallback to reencode mode
+        cmd = [
+            ffmpeg_exe, '-y', '-loglevel', 'error',
+            '-ss', str(start_sec),
+            '-t', str(duration),
+            '-i', src,
+            '-c:v', 'libx264',
+            '-preset', 'veryfast',
+            '-crf', '23',
+            '-pix_fmt', 'yuv420p',
+            '-c:a', 'aac',
+            '-movflags', '+faststart',
+            output_path
+        ]
+        
+        logger.info(f"FFmpeg clip command (reencode): {' '.join(cmd)}")
+        result = subprocess.run(cmd, capture_output=True, text=True, timeout=300)
+        
+        if result.returncode == 0 and os.path.exists(output_path):
+            logger.info(f"Video clipped successfully with reencode: {output_path}")
+            return True
+        else:
+            logger.error(f"FFmpeg clipping failed: {result.stderr}")
+            return False
+            
+    except subprocess.TimeoutExpired:
+        logger.error("FFmpeg clipping timed out")
+        return False
+    except Exception as e:
+        logger.error(f"FFmpeg clipping error: {e}")
+        return False
+
+
 def setup_ffmpeg_environment():
     """
     Setup FFmpeg environment automatically.

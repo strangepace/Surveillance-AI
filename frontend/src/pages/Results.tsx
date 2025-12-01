@@ -9,10 +9,15 @@ import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { useToast } from "@/hooks/use-toast";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Download, FileJson, Filter, Pin, PinOff, CheckCircle2, PlayCircle } from "lucide-react";
+import { Download, FileJson, Filter, Pin, PinOff, CheckCircle2, PlayCircle, Settings, BarChart3, X, ExternalLink } from "lucide-react";
+import PromptChipsInput from "@/components/PromptChipsInput";
+import { API_BASE } from "@/lib/api";
+import { formatHMS } from "@/lib/time";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import LazyVideo from "@/components/LazyVideo";
 import { VirtualizedList } from "@/components/VirtualizedList";
+import VirtualPreview from "@/components/VirtualPreview";
+import { parseHMS } from "@/lib/time";
 import api from "@/lib/api";
 // Types matching the provided mock JSON
 export type ResultEntry = {
@@ -25,6 +30,23 @@ export type ResultEntry = {
   frame_index?: number; // for cache busting
 };
 
+// DIAGNOSTIC MODE TYPES - For engine testing and performance analysis
+type DiagnosticMode = {
+  enabled: boolean;
+  thresholds: Record<string, number>; // label -> threshold value
+  falsePositives: Set<string>; // clip IDs marked as false positives
+  promptPreview: string; // shows how prompts get parsed
+};
+
+type MergedPreview = {
+  label: string;
+  start: string;
+  end: string;
+  duration: number;
+  confidence_peak: number;
+  url: string;
+};
+
 export type AnalysisResponse = {
   status: string;
   video_id: string;
@@ -32,6 +54,22 @@ export type AnalysisResponse = {
   alert_summary?: any; // Backend may return nested objects (e.g., priorities, categories)
   analysis_timestamp?: string;
   json_path?: string;
+  prompts?: string[]; // DIAGNOSTIC MODE: Original prompts used for analysis
+  analysisWindow?: { // PORTION ANALYSIS: Analysis window information
+    start: string;
+    end: string;
+    offsetSeconds: number;
+  };
+  previewSets?: {
+    merged?: Array<{
+      label: string;
+      start: string;
+      end: string;
+      duration: number;
+      confidence_peak: number;
+      url: string;
+    }>;
+  };
 };
 
 const CATEGORY_PATTERNS: Record<string, RegExp[]> = {
@@ -46,13 +84,25 @@ const COMMON_FILTERS = ["people", "fire", "vehicles"];
 const formatConf = (n: number) => `${Math.round(n * 100)}%`;
 
 const ResultsPage: React.FC = () => {
-  const { jobId } = useUpload();
+  const { jobId, prompts } = useUpload();
   const [searchParams, setSearchParams] = useSearchParams();
   const jid = searchParams.get("jobId") || jobId || "";
 
   const [data, setData] = useState<AnalysisResponse | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Runs history state
+  type RunSummary = {
+    jobId: string;
+    prompts: string[];
+    analysisWindow?: AnalysisResponse["analysisWindow"];
+    detections?: number;
+    createdAt: string;
+    status: "pending" | "processing" | "complete" | "error";
+  };
+  const [runs, setRuns] = useState<RunSummary[]>([]);
+  const resultsCache = useRef<Map<string, AnalysisResponse>>(new Map());
 
   const [activeFilters, setActiveFilters] = useState<string[]>([]);
   const [selectedIdx, setSelectedIdx] = useState<number | null>(null);
@@ -61,8 +111,19 @@ const ResultsPage: React.FC = () => {
 
   const [exporting, setExporting] = useState(false);
   const [zoom, setZoom] = useState(1);
+  const [configOpen, setConfigOpen] = useState(false);
+  const [reAnalyzing, setReAnalyzing] = useState(false);
+  const [cacheOk, setCacheOk] = useState<boolean | null>(null);
   const initRef = useRef(false);
   const { toast } = useToast();
+
+  // DIAGNOSTIC MODE STATE - For engine testing and performance analysis
+  const [diagnosticMode, setDiagnosticMode] = useState<DiagnosticMode>({
+    enabled: false,
+    thresholds: {},
+    falsePositives: new Set(),
+    promptPreview: ""
+  });
   const navigate = useNavigate();
   const timelineRef = useRef<HTMLDivElement | null>(null);
 
@@ -82,6 +143,22 @@ const ResultsPage: React.FC = () => {
       setSearchParams(next, { replace: true });
     }
   }, [jobId, searchParams, setSearchParams]);
+
+  // Restore runs from localStorage once
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem("results.runs");
+      if (raw) {
+        const arr = JSON.parse(raw) as RunSummary[];
+        setRuns(arr);
+      }
+    } catch {}
+  }, []);
+
+  // Persist runs summaries
+  useEffect(() => {
+    try { localStorage.setItem("results.runs", JSON.stringify(runs.slice(0, 5))); } catch {}
+  }, [runs]);
 
 useEffect(() => {
     let cancelled = false;
@@ -142,6 +219,21 @@ useEffect(() => {
     }
     initRef.current = true;
   }, [searchParams]);
+
+  // Optional: verify cached media availability via HEAD/Range request
+  useEffect(() => {
+    const check = async () => {
+      try {
+        if (!data?.media?.original_url) { setCacheOk(null); return; }
+        const url = (data.media as any).original_url as string;
+        const res = await fetch(url, { method: 'GET', headers: { 'Range': 'bytes=0-0' } });
+        setCacheOk(res.ok);
+      } catch {
+        setCacheOk(false);
+      }
+    };
+    check();
+  }, [data?.media?.original_url]);
 
 // Persist filters to URL + localStorage (debounced)
 useEffect(() => {
@@ -268,6 +360,24 @@ useEffect(() => {
     }
   };
 
+  // Helper to upsert a run summary
+  const upsertRun = useCallback((partial: Partial<RunSummary> & { jobId: string }) => {
+    setRuns((prev) => {
+      const idx = prev.findIndex((r) => r.jobId === partial.jobId);
+      const next = [...prev];
+      if (idx >= 0) next[idx] = { ...next[idx], ...partial } as RunSummary;
+      else next.unshift({
+        jobId: partial.jobId,
+        prompts: partial.prompts || [],
+        analysisWindow: partial.analysisWindow,
+        detections: partial.detections,
+        createdAt: new Date().toISOString(),
+        status: partial.status || "pending",
+      });
+      return next.slice(0, 5);
+    });
+  }, []);
+
 const handleExportClips = async () => {
     if (!jid || exporting) return;
     const human = (bytes: number) => {
@@ -307,6 +417,102 @@ const handleExportClips = async () => {
     }
   };
 
+  // Export individual clip function
+  const handleExportClip = async (mediaId: string, start: string, end: string, label: string) => {
+    try {
+      toast({ title: "Exporting clip", description: `Preparing ${label} clip...` });
+      
+      const response = await fetch('http://127.0.0.1:8000/export', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          media_id: mediaId,
+          start: start,
+          end: end,
+          label: label,
+          format: 'mp4'
+        })
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.detail || `Export failed (${response.status})`);
+      }
+
+      const exportData = await response.json();
+      
+      // Show success toast with download link
+      toast({
+        title: "Export ready",
+        description: `Clip exported successfully (${(exportData.size_bytes / 1024 / 1024).toFixed(1)} MB)`,
+        action: (
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => {
+              const a = document.createElement('a');
+              a.href = exportData.url;
+              a.download = `${label}_${start.replace(/:/g, '-')}_to_${end.replace(/:/g, '-')}.mp4`;
+              a.rel = 'noopener';
+              a.target = '_blank';
+              document.body.appendChild(a);
+              a.click();
+              a.remove();
+            }}
+          >
+            <Download className="w-4 h-4 mr-1" />
+            Download
+          </Button>
+        )
+      });
+
+    } catch (error: any) {
+      toast({
+        title: "Export failed",
+        description: error?.message || "Could not export clip. Please try again.",
+        variant: "destructive"
+      });
+    }
+  };
+
+  // DIAGNOSTIC MODE FUNCTIONS - For engine testing and performance analysis
+  const toggleDiagnosticMode = () => {
+    setDiagnosticMode(prev => ({
+      ...prev,
+      enabled: !prev.enabled
+    }));
+  };
+
+  const updateThreshold = (label: string, value: number) => {
+    setDiagnosticMode(prev => ({
+      ...prev,
+      thresholds: { ...prev.thresholds, [label]: value }
+    }));
+  };
+
+  const markFalsePositive = (clipId: string) => {
+    setDiagnosticMode(prev => {
+      const newFPs = new Set(prev.falsePositives);
+      if (newFPs.has(clipId)) {
+        newFPs.delete(clipId);
+      } else {
+        newFPs.add(clipId);
+      }
+      return { ...prev, falsePositives: newFPs };
+    });
+  };
+
+  const resetDiagnosticMode = () => {
+    setDiagnosticMode({
+      enabled: false,
+      thresholds: {},
+      falsePositives: new Set(),
+      promptPreview: ""
+    });
+  };
+
   return (
     <main className="min-h-screen page-results-bg">
       <SEOHead
@@ -325,12 +531,203 @@ const handleExportClips = async () => {
             </p>
           </div>
           <div className="flex items-center gap-2">
-            <Button variant="outline" onClick={() => navigate("/configure")}>Configure</Button>
+            <Button variant="outline" onClick={() => setConfigOpen((v) => !v)}>{configOpen ? "Close" : "Configure"}</Button>
             <Button variant="secondary" onClick={() => navigate("/progress?jobId=" + encodeURIComponent(jid))}>
               <PlayCircle className="mr-2" /> Progress
             </Button>
           </div>
         </header>
+
+        {/* Source meta row */}
+        {data?.media && (
+          <div className="mb-4 text-sm text-muted-foreground">
+            {(() => {
+              const mediaId = data.media as any;
+              const isYouTube = (mediaId.media_id || "").startsWith("yt_");
+              const sourceLabel = isYouTube ? "YouTube" : "Local";
+              const dur = (data.media as any).duration_s;
+              const durationText = typeof dur === "number" ? formatHMS(Math.max(0, Math.floor(dur))) : undefined;
+              // Format label unknown in results; if we add later, read from data.media.format_label
+              const parts = [sourceLabel, durationText].filter(Boolean);
+              return <div>{parts.join(" • ")}</div>;
+            })()}
+            {/* Refetch CTA if cache missing and provenance available */}
+            {cacheOk === false && (data as any)?.media?.provenance?.source_url && (
+              <div className="mt-2">
+                <Button size="sm" variant="outline" onClick={async () => {
+                  try {
+                    const sourceUrl = (data as any).media.provenance.source_url as string;
+                    const body = { source: 'youtube', url: sourceUrl, action: 'fetch' } as any;
+                    toast({ title: 'Restoring cache', description: 'Fetching video again…' });
+                    const res = await fetch(`${API_BASE}/media/fetch`, {
+                      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body)
+                    });
+                    if (!res.ok) {
+                      const err = await res.json().catch(() => ({}));
+                      throw new Error(err?.detail || `HTTP ${res.status}`);
+                    }
+                    const json = await res.json();
+                    // Update cache status and media original URL if provided
+                    setCacheOk(true);
+                    if (json?.file_url) {
+                      setData((prev) => prev ? { ...prev, media: { ...(prev.media as any), original_url: json.file_url } as any } : prev);
+                    }
+                    toast({ title: 'Cache restored', description: 'You can analyze again now.' });
+                  } catch (e: any) {
+                    toast({ title: 'Refetch failed', description: e?.message || 'Unable to refetch video.', variant: 'destructive' });
+                  }
+                }}>Refetch video</Button>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Runs panel */}
+        <div className="mb-6">
+          {runs.length > 0 && (
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base">Runs</CardTitle>
+                <CardDescription>Switch between analyses without leaving the page.</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-2">
+                  {runs.map((r) => {
+                    const isActive = r.jobId === jid;
+                    return (
+                      <div key={r.jobId} className={`flex items-center justify-between rounded border p-2 ${isActive ? 'bg-accent/30' : 'bg-background'}`}>
+                        <div className="flex items-center gap-3">
+                          <Badge variant={r.status === 'complete' ? 'secondary' : r.status === 'error' ? 'destructive' : 'outline'}>
+                            {r.status}
+                          </Badge>
+                          <div className="text-sm">
+                            <div className="font-medium truncate max-w-[40ch]">{r.prompts?.join(", ") || "(no prompts)"}</div>
+                            <div className="text-xs text-muted-foreground">
+                              {new Date(r.createdAt).toLocaleString()} • {typeof r.detections === 'number' ? `${r.detections} detections` : '—'}
+                            </div>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          {!isActive && (
+                            <Button size="sm" variant="outline" onClick={async () => {
+                              const next = new URLSearchParams(searchParams);
+                              next.set('jobId', r.jobId);
+                              setSearchParams(next, { replace: true });
+                              try {
+                                const cached = resultsCache.current.get(r.jobId);
+                                if (cached) { setData(cached); return; }
+                                const res = await api.getResults(r.jobId);
+                                resultsCache.current.set(r.jobId, res);
+                                setData(res);
+                              } catch (e:any) {
+                                toast({ title: 'Load failed', description: e?.message || 'Could not load run.' , variant: 'destructive'});
+                              }
+                            }}>View</Button>
+                          )}
+                          {isActive && <Badge variant="outline">Active</Badge>}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </CardContent>
+            </Card>
+          )}
+        </div>
+
+        {/* Configure inline - Analyze Again */}
+        {configOpen && (
+          <Card className="mb-6 animate-fade-in">
+            <CardHeader>
+              <CardTitle>Configure prompts</CardTitle>
+              <CardDescription>Update prompts and re-run analysis using the same cached video.</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                <PromptChipsInput
+                  label="What do you want to detect?"
+                  placeholder="e.g., person, car, fire"
+                  helper="Use simple phrases separated by commas"
+                />
+                <div className="flex justify-end">
+                  <Button disabled={reAnalyzing || !prompts.length} onClick={async () => {
+                    if (!data?.media?.media_id) return;
+                    try {
+                      setReAnalyzing(true);
+                      toast({ title: "Re-running analysis", description: "Submitting job…" });
+                      const body: any = {
+                        media_id: (data.media as any).media_id,
+                        prompts: prompts,
+                      };
+                      if (data.analysisWindow) body.analysisWindow = data.analysisWindow;
+                      const res = await fetch(`${API_BASE}/analyze`, {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify(body),
+                      });
+                      if (!res.ok) {
+                        const err = await res.json().catch(() => ({}));
+                        throw new Error(err?.detail || `HTTP ${res.status}`);
+                      }
+                      const analyzeResponse = await res.json();
+                      const newJobId = (
+                        analyzeResponse.jobId ||
+                        analyzeResponse.job_id ||
+                        analyzeResponse.jid ||
+                        analyzeResponse.video_id ||
+                        (analyzeResponse.data && (analyzeResponse.data.jobId || analyzeResponse.data.jid)) ||
+                        analyzeResponse.media_id // final fallback (legacy)
+                      );
+                      if (!newJobId) {
+                        throw new Error("Analyze response did not include a jobId");
+                      }
+                      // Track new run as processing
+                      upsertRun({ jobId: newJobId, prompts: prompts || [], status: 'processing', analysisWindow: data?.analysisWindow });
+                      // Reflect the new jobId in the URL immediately
+                      try {
+                        const next = new URLSearchParams(searchParams);
+                        next.set("jobId", newJobId);
+                        setSearchParams(next, { replace: true });
+                      } catch {}
+
+                      // Poll until complete (tolerate variant status values) and try fetching results periodically
+                      const isDone = (s: string | undefined) => {
+                        if (!s) return false;
+                        const v = s.toLowerCase();
+                        return v === "complete" || v === "success" || v === "done" || v === "finished";
+                      };
+                      let attempts = 0;
+                      let done = false;
+                      while (!done && attempts < 120) { // ~2 minutes max
+                        attempts++;
+                        try {
+                          const status = await api.getStatus(newJobId);
+                          if (isDone(status.status)) break;
+                          if (status.status === "error") throw new Error("Analysis failed");
+                        } catch (_) {
+                          // ignore transient status errors and keep polling
+                        }
+                        await new Promise((r) => setTimeout(r, 1200));
+                      }
+
+                      // Final fetch
+                      const latest = await api.getResults(newJobId);
+                      resultsCache.current.set(newJobId, latest);
+                      upsertRun({ jobId: newJobId, status: 'complete', detections: latest.results?.length || 0, analysisWindow: latest.analysisWindow });
+                      setData(latest);
+                      setSelectedIdx(latest.results?.length ? 0 : null);
+                      toast({ title: "Analysis complete", description: `Found ${latest.results?.length ?? 0} detections.` });
+                    } catch (e: any) {
+                      toast({ title: "Re-run failed", description: e?.message || "Please try again.", variant: "destructive" });
+                    } finally {
+                      setReAnalyzing(false);
+                    }
+                  }}>{reAnalyzing ? "Analyzing…" : "Analyze Again"}</Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Guardrails */}
         {error && (
@@ -562,6 +959,110 @@ const handleExportClips = async () => {
               </Card>
             </div>
 
+            {/* PORTION ANALYSIS: Analysis window information */}
+            {data?.analysisWindow && (
+              <div className="mb-6 p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+                <div className="flex items-center gap-2 mb-2">
+                  <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                  <h3 className="text-sm font-medium text-blue-900 dark:text-blue-100">Analysis Window</h3>
+                </div>
+                <div className="text-sm text-blue-700 dark:text-blue-300">
+                  <div>Analyzed segment: <span className="font-medium">{data.analysisWindow.start}</span> → <span className="font-medium">{data.analysisWindow.end}</span></div>
+                  <div className="text-xs text-blue-600 dark:text-blue-400 mt-1">
+                    Timestamps in results are absolute (offset: {data.analysisWindow.offsetSeconds}s)
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Merged previews (per-label continuous clips) - Virtual Preview Mode */}
+            {data?.previewSets?.merged && data.previewSets.merged.length > 0 && (
+              <div className="space-y-3">
+                <h2 className="text-lg font-semibold tracking-tight">Merged previews (per label)</h2>
+                <div className="space-y-6">
+                  {(() => {
+                    const groups = new Map();
+                    for (const m of (data!.previewSets!.merged!)) {
+                      const arr: any[] = groups.get(m.label) || [];
+                      arr.push(m);
+                      groups.set(m.label, arr);
+                    }
+                    return Array.from(groups.entries()).map(([label, items]: [string, any[]]) => (
+                      <Card key={label} className="animate-fade-in">
+                        <CardHeader>
+                          <CardTitle className="flex items-center gap-2">
+                            <Badge variant="secondary">{label}</Badge>
+                            <span className="text-sm text-muted-foreground">{items.length} clip{items.length>1?"s":""}</span>
+                          </CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                            {items.map((it, idx) => {
+                              // Determine video source
+                              let videoSrc = "";
+                              if (data?.media?.original_url) {
+                                // Use original media URL for virtual previews
+                                videoSrc = data.media.original_url;
+                              } else {
+                                // Fallback to server-generated URL if available
+                                videoSrc = it.url || "";
+                              }
+                              
+                              // Parse start and end times
+                              const startSeconds = parseHMS(it.start);
+                              const endSeconds = parseHMS(it.end);
+                              
+                              return (
+                                <div key={`${label}-${idx}`} className="relative">
+                                  <VirtualPreview
+                                    src={videoSrc}
+                                    start={startSeconds}
+                                    end={endSeconds}
+                                    label={label}
+                                    className="w-full"
+                                  />
+                                  
+                                  {/* Export and Diagnostic buttons overlay */}
+                                  <div className="absolute top-2 right-2 z-10 flex gap-1">
+                                    {/* Export clip button */}
+                                    <Button
+                                      size="sm"
+                                      variant="secondary"
+                                      onClick={() => handleExportClip(
+                                        data?.media?.media_id || "",
+                                        it.start,
+                                        it.end,
+                                        label
+                                      )}
+                                      className="bg-white/90 hover:bg-white text-gray-700 hover:text-gray-900"
+                                    >
+                                      <ExternalLink className="w-3 h-3" />
+                                    </Button>
+                                    
+                                    {/* DIAGNOSTIC MODE: False Positive Marking for Merged Clips */}
+                                    {diagnosticMode.enabled && (
+                                      <Button
+                                        size="sm"
+                                        variant={diagnosticMode.falsePositives.has(`${label}-${idx}`) ? "destructive" : "outline"}
+                                        onClick={() => markFalsePositive(`${label}-${idx}`)}
+                                        className="bg-white/90 hover:bg-white"
+                                      >
+                                        {diagnosticMode.falsePositives.has(`${label}-${idx}`) ? "FP" : "Mark FP"}
+                                      </Button>
+                                    )}
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ));
+                  })()}
+                </div>
+              </div>
+            )}
+
             {/* Results list */}
             <div className="space-y-3">
               <h2 className="text-lg font-semibold tracking-tight">Detections</h2>
@@ -584,16 +1085,232 @@ const handleExportClips = async () => {
                   ))}
                 </div>
               ) : (
-                <VirtualizedList items={rawList} pinned={pinned} acknowledged={acknowledged} onPin={handlePin} onAck={handleAck} />
+                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                  {rawList.map((item, index) => (
+                    <Card
+                      key={`${item.timestamp}-${index}`}
+                      className={`relative transition-all duration-300 hover:-translate-y-1 hover:shadow-lg ${
+                        pinned.has(index) ? "ring-1 ring-primary/30" : ""
+                      } ${acknowledged.has(index) ? "opacity-90" : ""}`}
+                    >
+                      <CardHeader className="space-y-1 pb-2">
+                        <div className="flex items-center justify-between">
+                          <CardTitle className="text-base">{item.timestamp}</CardTitle>
+                          <div className="flex items-center gap-2">
+                            <Button
+                              size="sm"
+                              variant={pinned.has(index) ? "secondary" : "outline"}
+                              onClick={() => handlePin(index)}
+                              aria-pressed={pinned.has(index)}
+                              aria-label={pinned.has(index) ? "Unpin alert" : "Pin alert"}
+                            >
+                              {pinned.has(index) ? <PinOff aria-hidden /> : <Pin aria-hidden />}
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant={acknowledged.has(index) ? "secondary" : "outline"}
+                              onClick={() => handleAck(index)}
+                              aria-checked={acknowledged.has(index)}
+                              role="checkbox"
+                              aria-label={acknowledged.has(index) ? "Unacknowledge alert" : "Acknowledge alert"}
+                            >
+                              <CheckCircle2 aria-hidden />
+                            </Button>
+                          </div>
+                        </div>
+                        <CardDescription>Confidence: {Math.round(item.confidence * 100)}%</CardDescription>
+                      </CardHeader>
+                      <CardContent>
+                        {pinned.has(index) && (
+                          <Badge variant="secondary" className="absolute left-2 top-2 z-10">
+                            Pinned
+                          </Badge>
+                        )}
+                        {acknowledged.has(index) && (
+                          <Badge variant="outline" className="absolute left-2 top-10 z-10">
+                            ✓ Acknowledged
+                          </Badge>
+                        )}
+                        <div className="overflow-hidden rounded-lg border relative">
+                          <LazyVideo 
+                            src={item.preview_clip} 
+                            controls 
+                            className="h-auto w-full rounded-lg" 
+                            preload="metadata" 
+                            playsInline 
+                          />
+                          {/* DIAGNOSTIC MODE: False Positive Marking */}
+                          {diagnosticMode.enabled && (
+                            <Button
+                              size="sm"
+                              variant={diagnosticMode.falsePositives.has(`${item.timestamp}-${index}`) ? "destructive" : "outline"}
+                              onClick={() => markFalsePositive(`${item.timestamp}-${index}`)}
+                              className="absolute top-2 right-2 z-10"
+                            >
+                              {diagnosticMode.falsePositives.has(`${item.timestamp}-${index}`) ? "FP" : "Mark FP"}
+                            </Button>
+                          )}
+                        </div>
+                        <div className="mt-3 flex flex-wrap gap-2">
+                          {item.labels.map((label, k) => (
+                            <Badge key={k} variant="outline">
+                              {label}
+                            </Badge>
+                          ))}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
               )}
             </div>
           </div>
         )}
       </section>
 
+      {/* DIAGNOSTIC MODE PANEL - For engine testing and performance analysis */}
+      {diagnosticMode.enabled && (
+        <div className="fixed top-4 right-4 w-96 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg shadow-lg z-50 max-h-[80vh] overflow-y-auto">
+          <div className="p-4 border-b border-gray-200 dark:border-gray-700">
+            <div className="flex items-center justify-between">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                🔧 Diagnostic Mode
+              </h3>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={resetDiagnosticMode}
+                className="text-gray-500 hover:text-gray-700"
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
+            <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+              Engine testing tools for performance analysis
+            </p>
+          </div>
+          
+          <div className="p-4 space-y-4">
+            {/* Threshold Controls */}
+            <div>
+              <h4 className="font-medium text-gray-900 dark:text-white mb-2">Threshold Controls</h4>
+              <div className="space-y-2">
+                {data?.results && Array.from(new Set(data.results.flatMap(r => r.labels))).map(label => (
+                  <div key={label} className="flex items-center gap-2">
+                    <label className="text-sm text-gray-700 dark:text-gray-300 w-20 truncate">
+                      {label}
+                    </label>
+                    <input
+                      type="range"
+                      min="0"
+                      max="1"
+                      step="0.01"
+                      value={diagnosticMode.thresholds[label] || 0.5}
+                      onChange={(e) => updateThreshold(label, parseFloat(e.target.value))}
+                      className="flex-1"
+                    />
+                    <span className="text-xs text-gray-500 w-12">
+                      {Math.round((diagnosticMode.thresholds[label] || 0.5) * 100)}%
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* False Positive Tracking */}
+            <div>
+              <h4 className="font-medium text-gray-900 dark:text-white mb-2">
+                False Positives ({diagnosticMode.falsePositives.size})
+              </h4>
+              <div className="text-sm text-gray-600 dark:text-gray-400">
+                Click clips below to mark as false positive
+              </div>
+            </div>
+
+            {/* Prompt Analysis */}
+            <div>
+              <h4 className="font-medium text-gray-900 dark:text-white mb-2">Prompt Analysis</h4>
+              <div className="space-y-2">
+                <div className="text-sm text-gray-600 dark:text-gray-400">
+                  Original prompts: {data?.prompts?.join(", ") || "N/A"}
+                </div>
+                <div className="text-sm">
+                  <div className="text-gray-600 dark:text-gray-400 mb-1">Parsed as individual labels:</div>
+                  <div className="flex flex-wrap gap-1">
+                    {data?.results && Array.from(new Set(data.results.flatMap(r => r.labels))).map(label => (
+                      <Badge key={label} variant="outline" className="text-xs">
+                        {label}
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+                <div className="text-xs text-orange-600 dark:text-orange-400 bg-orange-50 dark:bg-orange-900/20 p-2 rounded">
+                  ⚠️ Multi-word prompts like "yellow flowers" may be split into separate labels
+                </div>
+              </div>
+            </div>
+
+            {/* Confidence Distribution */}
+            <div>
+              <h4 className="font-medium text-gray-900 dark:text-white mb-2">Confidence Distribution</h4>
+              <div className="space-y-1">
+                {data?.results && (() => {
+                  const confidences = data.results.map(r => r.confidence);
+                  const buckets = [0, 0.2, 0.4, 0.6, 0.8, 1.0];
+                  const distribution = buckets.slice(0, -1).map((min, i) => {
+                    const max = buckets[i + 1];
+                    const count = confidences.filter(c => c >= min && c < max).length;
+                    return { range: `${Math.round(min * 100)}-${Math.round(max * 100)}%`, count, percentage: (count / confidences.length) * 100 };
+                  });
+                  
+                  return distribution.map((bucket, i) => (
+                    <div key={i} className="flex items-center gap-2 text-sm">
+                      <div className="w-16 text-gray-600 dark:text-gray-400">{bucket.range}</div>
+                      <div className="flex-1 bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+                        <div 
+                          className="bg-blue-500 h-2 rounded-full transition-all duration-300" 
+                          style={{ width: `${bucket.percentage}%` }}
+                        />
+                      </div>
+                      <div className="w-8 text-gray-600 dark:text-gray-400">{bucket.count}</div>
+                    </div>
+                  ));
+                })()}
+              </div>
+            </div>
+
+            {/* Performance Metrics */}
+            <div>
+              <h4 className="font-medium text-gray-900 dark:text-white mb-2">Performance Metrics</h4>
+              <div className="grid grid-cols-2 gap-2 text-sm">
+                <div className="bg-gray-50 dark:bg-gray-700 p-2 rounded">
+                  <div className="text-gray-600 dark:text-gray-400">Total Detections</div>
+                  <div className="font-medium">{data?.results?.length || 0}</div>
+                </div>
+                <div className="bg-gray-50 dark:bg-gray-700 p-2 rounded">
+                  <div className="text-gray-600 dark:text-gray-400">Avg Confidence</div>
+                  <div className="font-medium">
+                    {data?.results ? Math.round(data.results.reduce((acc, r) => acc + r.confidence, 0) / data.results.length * 100) : 0}%
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Export FAB */}
       {!error && (
           <aside className="fixed bottom-5 right-5 z-40 flex gap-2">
+            {/* DIAGNOSTIC MODE TOGGLE - For engine testing and performance analysis */}
+            <Button 
+              variant={diagnosticMode.enabled ? "default" : "outline"} 
+              onClick={toggleDiagnosticMode}
+              className={diagnosticMode.enabled ? "bg-orange-600 hover:bg-orange-700" : ""}
+            >
+              <Settings className="mr-2" /> 
+              {diagnosticMode.enabled ? "Diagnostic ON" : "Diagnostic"}
+            </Button>
             <Button variant="secondary" onClick={handleDownloadJson} disabled={!data?.json_path}>
               <FileJson className="mr-2" /> Download JSON
             </Button>

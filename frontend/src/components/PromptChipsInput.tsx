@@ -13,6 +13,7 @@ interface PromptChipsInputProps {
   className?: string;
   autoFocus?: boolean;
   id?: string;
+  disabled?: boolean;
 }
 
 const PromptChipsInput: React.FC<PromptChipsInputProps> = ({
@@ -22,6 +23,7 @@ const PromptChipsInput: React.FC<PromptChipsInputProps> = ({
   className,
   autoFocus,
   id = "prompts-input",
+  disabled = false,
 }) => {
 const { prompts, setPrompts } = useUpload();
   const [value, setValue] = useState("");
@@ -148,6 +150,7 @@ const commitEdit = () => {
           aria-label={label}
           className="flex-1 min-w-[160px] border-0 focus-visible:ring-0 focus-visible:ring-offset-0"
           autoFocus={autoFocus}
+          disabled={disabled}
         />
       </div>
       {helper ? (

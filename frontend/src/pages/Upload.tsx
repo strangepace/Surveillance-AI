@@ -1,16 +1,21 @@
-import React, { useCallback, useMemo, useRef, useState } from "react";
+import React, { useCallback, useMemo, useRef, useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
-import { UploadCloud, Info } from "lucide-react";
+import { UploadCloud, Info, ExternalLink } from "lucide-react";
 import { SEOHead } from "@/components/SEO";
 import { useUpload, VideoMetadata } from "@/context/UploadContext";
 import { cn } from "@/lib/utils";
 import PromptChipsInput from "@/components/PromptChipsInput";
+import { VideoRangeSelector } from "@/components/VideoRangeSelector";
+import { formatHMS } from "@/lib/time";
+import UrlIngestForm from "@/components/UrlIngestForm";
+import { handleUrlIngestError } from "@/lib/urlIngest";
 
 const MAX_BYTES = 2 * 1024 * 1024 * 1024; // 2GB
 const MAX_SECONDS = 2 * 60 * 60; // 2 hours
@@ -40,9 +45,11 @@ const getExtension = (name: string) => name.slice(name.lastIndexOf(".")).toLower
 
 const Upload: React.FC = () => {
   const navigate = useNavigate();
-  const { setFileWithMetadata, file, metadata } = useUpload();
+  const { setFileWithMetadata, file, metadata, analysisRange, setAnalysisRange, prompts, model, mode } = useUpload();
   const [dragOver, setDragOver] = useState(false);
   const [consent, setConsent] = useState(false);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [urlIngestData, setUrlIngestData] = useState<any>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const onSelectFile = useCallback(async (f: File) => {
@@ -149,7 +156,76 @@ const Upload: React.FC = () => {
     if (f) onSelectFile(f);
   };
 
+  // Update analysis range when video duration changes
+  useEffect(() => {
+    if (metadata?.duration && !urlIngestData) {
+      const duration = metadata.duration;
+      const defaultEnd = Math.min(30, duration); // Default to 30s or full duration
+      setAnalysisRange([0, defaultEnd]);
+    } else if (urlIngestData?.duration_s) {
+      const duration = urlIngestData.duration_s;
+      const defaultEnd = Math.min(30, duration); // Default to 30s or full duration
+      setAnalysisRange([0, defaultEnd]);
+    }
+  }, [metadata?.duration, urlIngestData]);
+
   const canContinue = !!file && !!metadata && consent;
+
+  // URL ingestion handlers
+  const handleUrlIngestComplete = useCallback((data: any) => {
+    setUrlIngestData(data);
+    // Create a mock file and metadata for the URL ingestion
+    const mockMetadata: VideoMetadata = {
+      duration: data.duration,
+      width: 1920, // Default values
+      height: 1080,
+      fps: 30,
+      sizeBytes: 0,
+      resolution: "1920×1080"
+    };
+    setFileWithMetadata(new File([], data.title, { type: "video/mp4" }), mockMetadata);
+  }, [setFileWithMetadata]);
+
+  const handleUrlIngestError = useCallback((error: string) => {
+    setUrlIngestData(null);
+    toast.error(error);
+  }, []);
+
+  const handleAnalyzeFromUrl = useCallback(async () => {
+    if (!urlIngestData || !prompts.length) return;
+    setIsAnalyzing(true);
+    try {
+      const [startS, endS] = analysisRange;
+      const body = {
+        media_id: urlIngestData.media_id,
+        prompts,
+        model: model || "clip",
+        analysisWindow: {
+          start: formatHMS(startS),
+          end: formatHMS(endS),
+          offsetSeconds: startS
+        }
+      };
+      const resp = await fetch("http://127.0.0.1:8000/analyze", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body)
+      });
+      if (!resp.ok) {
+        const err = await resp.json().catch(() => ({}));
+        throw new Error(err?.detail || `HTTP ${resp.status}`);
+      }
+      const jobId = urlIngestData.media_id;
+      // Navigate to progress page instead of waiting directly
+      navigate(`/progress?jobId=${jobId}`);
+    } catch (error) {
+      console.error("Analysis error:", error);
+      const errorMessage = error instanceof Error ? error.message : "Analysis failed";
+      toast.error(errorMessage);
+    } finally {
+      setIsAnalyzing(false);
+    }
+  }, [urlIngestData, prompts, model, analysisRange, navigate]);
 
   const gradientStyle = useMemo(() => ({
     background: "linear-gradient(135deg, hsl(var(--gradient-upload-from)) 0%, hsl(var(--gradient-upload-to)) 100%)",
@@ -175,33 +251,56 @@ const Upload: React.FC = () => {
         <Card className={cn("mx-auto max-w-3xl rounded-2xl shadow-lg border bg-card/60 backdrop-blur supports-[backdrop-filter]:bg-card/70")}> 
           <CardHeader>
             <CardTitle className="text-2xl">Select your footage</CardTitle>
-            <CardDescription>Drag-and-drop or browse to add a single video (max 2GB / 2 hours).</CardDescription>
+            <CardDescription>Upload a local file or fetch from YouTube URL for analysis.</CardDescription>
           </CardHeader>
           <CardContent>
-            <div
-              onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
-              onDragLeave={() => setDragOver(false)}
-              onDrop={onDrop}
-              className={cn(
-                "relative flex flex-col items-center justify-center gap-3 border-2 border-dashed rounded-xl p-8 transition-colors", 
-                dragOver ? "border-primary bg-muted/50" : "border-border"
-              )}
-            >
-              <UploadCloud className="h-8 w-8 text-muted-foreground" />
-              <p className="text-sm text-muted-foreground text-center">
-                Drag & drop CCTV footage here, or click to browse.
-              </p>
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept={ACCEPTED_EXT.join(",")}
-                className="absolute inset-0 opacity-0 cursor-pointer"
-                onChange={onInputChange}
-              />
-              <div className="text-xs text-muted-foreground mt-2">
-                Accepted: {ACCEPTED_EXT.join(", ")}
-              </div>
-            </div>
+            <Tabs defaultValue="upload" className="w-full">
+              <TabsList className="grid w-full grid-cols-2">
+                <TabsTrigger value="upload" className="flex items-center gap-2">
+                  <UploadCloud className="h-4 w-4" />
+                  Upload File
+                </TabsTrigger>
+                <TabsTrigger value="url" className="flex items-center gap-2">
+                  <ExternalLink className="h-4 w-4" />
+                  From URL
+                </TabsTrigger>
+              </TabsList>
+              
+              <TabsContent value="upload" className="mt-6">
+                <div
+                  onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
+                  onDragLeave={() => setDragOver(false)}
+                  onDrop={onDrop}
+                  className={cn(
+                    "relative flex flex-col items-center justify-center gap-3 border-2 border-dashed rounded-xl p-8 transition-colors", 
+                    dragOver ? "border-primary bg-muted/50" : "border-border"
+                  )}
+                >
+                  <UploadCloud className="h-8 w-8 text-muted-foreground" />
+                  <p className="text-sm text-muted-foreground text-center">
+                    Drag & drop CCTV footage here, or click to browse.
+                  </p>
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept={ACCEPTED_EXT.join(",")}
+                    className="absolute inset-0 opacity-0 cursor-pointer"
+                    onChange={onInputChange}
+                  />
+                  <div className="text-xs text-muted-foreground mt-2">
+                    Accepted: {ACCEPTED_EXT.join(", ")}
+                  </div>
+                </div>
+              </TabsContent>
+              
+              <TabsContent value="url" className="mt-6">
+                <UrlIngestForm 
+                  onIngestComplete={handleUrlIngestComplete}
+                  onError={handleUrlIngestError}
+                  onRangeChange={(r) => setAnalysisRange(r)}
+                />
+              </TabsContent>
+            </Tabs>
 
             {file && metadata && (
               <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -227,11 +326,25 @@ const Upload: React.FC = () => {
               </div>
             )}
 
+            {file && metadata && !urlIngestData && (
+              <div className="mt-6">
+                <VideoRangeSelector
+                  duration={metadata.duration}
+                  value={analysisRange}
+                  onChange={setAnalysisRange}
+                  step={1}
+                />
+              </div>
+            )}
+
+            {/* Analysis window for URL uploads is rendered inside UrlIngestForm after fetch */}
+
             <div className="mt-6">
               <PromptChipsInput
                 label="What do you want to detect?"
                 placeholder="e.g., man in red shirt, fire, black SUV"
                 helper="Use simple phrases separated by commas"
+                disabled={!file && !urlIngestData}
               />
             </div>
 
@@ -255,7 +368,19 @@ const Upload: React.FC = () => {
             </div>
 
             <div className="mt-8 flex justify-end">
-              <Button size="lg" disabled={!canContinue} onClick={() => navigate("/configure")}>Continue</Button>
+              {urlIngestData ? (
+                <Button 
+                  size="lg" 
+                  disabled={!canContinue || isAnalyzing} 
+                  onClick={handleAnalyzeFromUrl}
+                >
+                  {isAnalyzing ? "Analyzing..." : "Analyze Video"}
+                </Button>
+              ) : (
+                <Button size="lg" disabled={!canContinue} onClick={() => navigate("/configure")}>
+                  Continue
+                </Button>
+              )}
             </div>
           </CardContent>
         </Card>

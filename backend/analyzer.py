@@ -301,14 +301,21 @@ class VideoAnalyzer:
                         # Sort by confidence
                         matches.sort(key=lambda x: x[1], reverse=True)
                         
-                        # Generate preview clip
+                        # Generate preview clip (LEGACY SERVER PREVIEW GENERATION - kept for fallback)
                         timestamp_str = f"{int(timestamp//3600):02d}:{int((timestamp%3600)//60):02d}:{int(timestamp%60):02d}"
-                        preview_path = generate_preview_clip(
-                            video_path, 
-                            previews_dir, 
-                            timestamp_str, 
-                            clip_length=3
-                        )
+                        
+                        # Check if legacy preview generation is enabled
+                        preview_generation_enabled = self.config.get("preview_generation", {}).get("enabled", False)
+                        if preview_generation_enabled:
+                            preview_path = generate_preview_clip(
+                                video_path, 
+                                previews_dir, 
+                                timestamp_str, 
+                                clip_length=3
+                            )
+                        else:
+                            # Virtual preview mode - just return a placeholder path
+                            preview_path = f"virtual_preview_{timestamp_str.replace(':', '_')}"
                         
                         # Create detection result
                         labels = [label for label, _ in matches]
@@ -436,13 +443,18 @@ class VideoAnalyzer:
         
         for i, (timestamp, labels, confidence) in enumerate(zip(sample_timestamps, sample_labels, sample_confidences)):
             try:
-                # Generate preview clip
-                preview_path = generate_preview_clip(
-                    video_path, 
-                    previews_dir, 
-                    timestamp, 
-                    clip_length=3
-                )
+                # Generate preview clip (LEGACY SERVER PREVIEW GENERATION - kept for fallback)
+                preview_generation_enabled = self.config.get("preview_generation", {}).get("enabled", False)
+                if preview_generation_enabled:
+                    preview_path = generate_preview_clip(
+                        video_path, 
+                        previews_dir, 
+                        timestamp, 
+                        clip_length=3
+                    )
+                else:
+                    # Virtual preview mode - just return a placeholder path
+                    preview_path = f"virtual_preview_{timestamp.replace(':', '_')}"
                 
                 result = DetectionResult(
                     timestamp=timestamp,

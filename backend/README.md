@@ -66,17 +66,44 @@ pip install -r requirements.txt
 - **GET** `/health`
 - Returns: `{ "status": "ok", "version": "v3" }`
 
-### 2. Video Analysis
+### 2. YouTube (probe/fetch/cache)
+- **POST** `/media/fetch`
+  - Probe:
+    - Body: `{ "source":"youtube", "url":"...", "action":"probe" }`
+    - Returns: `{ title, channel, duration_s, thumbs[], formats[] }`
+  - Fetch (download or reuse cache):
+    - Body: `{ "source":"youtube", "url":"...", "action":"fetch", "format_id":"137+140"? }`
+    - Returns: `{ media_id, already_cached, title, duration_s, file_url }`
+
+### 3. Video Analysis
 - **POST** `/analyze`
-- **Request:**
-  - `file`: Video file (mp4)
-  - `prompts`: Comma-separated string (e.g., `"person, car, fire"`)
-- **Response:**
-  - JSON with detection results, preview clips, and metadata
+  - Multipart (legacy upload): `file`, `prompts`
+  - JSON (reuse cached file): `{ media_id, prompts: [..], analysisWindow?: { start, end, offsetSeconds } }`
+  - Returns: JSON with detection results, `media` metadata, optional `analysisWindow`, and preview sets
 
 ---
 
 ## Example Usage
+### New YouTube flow
+1) Probe formats
+```bash
+curl -X POST http://127.0.0.1:8000/media/fetch \
+  -H "Content-Type: application/json" \
+  -d '{"source":"youtube","url":"https://www.youtube.com/watch?v=DVswJyheZQk","action":"probe"}'
+```
+2) Fetch (cache) specific format
+```bash
+curl -X POST http://127.0.0.1:8000/media/fetch \
+  -H "Content-Type: application/json" \
+  -d '{"source":"youtube","url":"https://www.youtube.com/watch?v=DVswJyheZQk","action":"fetch","format_id":"137+140"}'
+```
+3) Analyze by media_id
+```bash
+curl -X POST http://127.0.0.1:8000/analyze \
+  -H "Content-Type: application/json" \
+  -d '{"media_id":"yt_abc123def456","prompts":["motorcycle","boat"],"analysisWindow":{"start":"00:00:00","end":"00:00:30","offsetSeconds":0}}'
+```
+
 ### Using Python `requests`
 ```python
 import requests

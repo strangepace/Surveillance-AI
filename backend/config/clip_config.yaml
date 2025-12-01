@@ -16,6 +16,22 @@ preview_clip:
   output_dir: results/previews
 similarity_threshold: 0.21   # ADJUSTED: more realistic threshold based on actual similarity ranges
 
+# Cache & YouTube controls
+cache:
+  max_total_gb: 8
+youtube:
+  allow: true
+
+# Preview merge settings for continuous per-label clips
+preview_merge:
+  enabled: true
+  gap_seconds: 3
+  pad_pre_seconds: 2
+  pad_post_seconds: 2
+  min_seconds: 2
+  max_seconds: 30
+  keep_micro_previews: false
+
 # Colab Compatibility Settings
 paths:
   # Local environment paths
@@ -37,3 +53,47 @@ error_handling:
   return_detailed_errors: true
   max_retries: 3
   timeout_seconds: 600
+
+# Preview Generation Settings (Legacy/Fallback)
+preview_generation:
+  enabled: false
+  keep_micro_previews: false
+  path: "results/previews"
+
+# Export Settings
+export:
+  enabled: true
+  watermark: true
+  hash_sha256: true
+  store: "local"
+  public_base_url: "http://127.0.0.1:8000"
+  s3_bucket: ""
+  signed_url_ttl_seconds: 900
+
+# Media Serving Settings
+media_serving:
+  accept_ranges: true
+  cors_allowed: ["http://localhost:8080","http://127.0.0.1:8080"]
+
+# Ring Buffer Settings (for future HLS streaming)
+ring_buffer:
+  enabled: false
+  type: "hls"
+  segment_seconds: 4
+  minutes_to_keep: 30
+  base_dir: "ring"
+
+# URL Ingestion Settings (YouTube URL analysis)
+url_ingest:
+  enabled: true           # default off (ToS/rights)
+  provider: "youtube"      # only youtube for now
+  max_duration_minutes: 120
+  max_size_mb: 2048
+  work_dir: "uploads/url_tmp"
+  user_agent: "Mozilla/5.0"
+  keep_hours: 24           # cleanup TTL for temp files
+  preferred_quality: "bestvideo[ext=mp4]+bestaudio[ext=m4a]/mp4"
+  # Format inspection settings
+  preferred_container: "mp4"
+  prefer_codecs: ["h264", "avc1", "mp4a"]
+  allow_av1_vp9: true
