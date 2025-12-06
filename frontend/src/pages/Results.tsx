@@ -5,6 +5,8 @@ import { useUpload } from "@/context/UploadContext";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { useToast } from "@/hooks/use-toast";
@@ -117,6 +119,11 @@ const ResultsPage: React.FC = () => {
   const initRef = useRef(false);
   const { toast } = useToast();
 
+  // Re-run UI state - local prompts for new queries (separate from UploadContext)
+  const [newQueryPrompts, setNewQueryPrompts] = useState<string[]>([]);
+  const [newQueryInput, setNewQueryInput] = useState("");
+  const [storedMediaId, setStoredMediaId] = useState<string | null>(null);
+
   // DIAGNOSTIC MODE STATE - For engine testing and performance analysis
   const [diagnosticMode, setDiagnosticMode] = useState<DiagnosticMode>({
     enabled: false,
@@ -185,6 +192,10 @@ useEffect(() => {
         if (!cancelled) {
           setData(json);
           setSelectedIdx(json.results?.length ? 0 : null);
+          // Store media_id for re-runs
+          if ((json as any)?.media?.media_id) {
+            setStoredMediaId((json as any).media.media_id);
+          }
         }
         } catch (e: any) {
           if (!cancelled) {
@@ -580,6 +591,195 @@ const handleExportClips = async () => {
               </div>
             )}
           </div>
+        )}
+
+        {/* Ask Another Question - Re-run UI */}
+        {data && storedMediaId && (
+          <Card className="mb-6 border-primary/20 bg-primary/5 animate-fade-in">
+            <CardHeader className="pb-3">
+              <CardTitle className="flex items-center gap-2">
+                <PlayCircle className="h-5 w-5" />
+                Ask another question on this video
+              </CardTitle>
+              <CardDescription>
+                Search again using cached video data. No re-upload needed - this will be fast.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                {/* Prompt input with chips */}
+                <div>
+                  <Label className="text-sm font-medium mb-2 block">What do you want to detect?</Label>
+                  <div className="min-h-[46px] w-full rounded-[var(--radius)] border bg-background px-2 py-2 flex flex-wrap items-center gap-2 focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2 shadow-sm">
+                    {newQueryPrompts.map((p, i) => (
+                      <Badge key={`${p}-${i}`} variant="secondary" className="h-7 gap-1">
+                        <span>{p}</span>
+                        <button
+                          type="button"
+                          aria-label={`Remove ${p}`}
+                          className="ml-1 inline-flex items-center"
+                          onClick={() => {
+                            const next = [...newQueryPrompts];
+                            next.splice(i, 1);
+                            setNewQueryPrompts(next);
+                          }}
+                        >
+                          <X className="h-3.5 w-3.5" />
+                        </button>
+                      </Badge>
+                    ))}
+                    <Input
+                      value={newQueryInput}
+                      onChange={(e) => setNewQueryInput(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" || e.key === ",") {
+                          e.preventDefault();
+                          const text = newQueryInput.trim();
+                          if (text) {
+                            const parts = text.split(",").map((p) => p.trim()).filter(Boolean);
+                            if (parts.length > 0) {
+                              const next = Array.from(new Set([...newQueryPrompts, ...parts]));
+                              setNewQueryPrompts(next);
+                              setNewQueryInput("");
+                            }
+                          }
+                        } else if (e.key === "Backspace" && newQueryInput === "" && newQueryPrompts.length > 0) {
+                          setNewQueryPrompts(newQueryPrompts.slice(0, -1));
+                        }
+                      }}
+                      placeholder="e.g., person, car, fire"
+                      className="flex-1 min-w-[160px] border-0 focus-visible:ring-0 focus-visible:ring-offset-0"
+                      disabled={reAnalyzing}
+                    />
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-2">Use simple phrases separated by commas. Press Enter or comma to add.</p>
+                </div>
+                <div className="flex items-center justify-between">
+                  <div className="text-sm text-muted-foreground">
+                    {reAnalyzing ? (
+                      <span className="flex items-center gap-2">
+                        <span className="h-4 w-4 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+                        Running fast re-query on cached video…
+                      </span>
+                    ) : (
+                      "This will reuse the cached video analysis for instant results."
+                    )}
+                  </div>
+                  <Button
+                    disabled={reAnalyzing || newQueryPrompts.length === 0}
+                    onClick={async () => {
+                      if (!storedMediaId || newQueryPrompts.length === 0) return;
+                      try {
+                        setReAnalyzing(true);
+                        toast({ 
+                          title: "Searching again", 
+                          description: "Running fast re-query on cached video…",
+                          duration: 2000
+                        });
+                        const body: any = {
+                          media_id: storedMediaId,
+                          prompts: newQueryPrompts,
+                          model: "clip",
+                        };
+                        if (data.analysisWindow) body.analysisWindow = data.analysisWindow;
+                        const res = await fetch(`${API_BASE}/analyze`, {
+                          method: "POST",
+                          headers: { "Content-Type": "application/json" },
+                          body: JSON.stringify(body),
+                        });
+                        if (!res.ok) {
+                          const err = await res.json().catch(() => ({}));
+                          throw new Error(err?.detail || `HTTP ${res.status}`);
+                        }
+                        const analyzeResponse = await res.json();
+                        const newJobId = (
+                          analyzeResponse.jobId ||
+                          analyzeResponse.job_id ||
+                          analyzeResponse.jid ||
+                          analyzeResponse.video_id ||
+                          (analyzeResponse.data && (analyzeResponse.data.jobId || analyzeResponse.data.jid)) ||
+                          analyzeResponse.media_id
+                        );
+                        if (!newJobId) {
+                          throw new Error("Analyze response did not include a jobId");
+                        }
+                        // Track new run as processing
+                        upsertRun({ 
+                          jobId: newJobId, 
+                          prompts: newQueryPrompts, 
+                          status: 'processing', 
+                          analysisWindow: data?.analysisWindow 
+                        });
+                        // Reflect the new jobId in the URL immediately
+                        try {
+                          const next = new URLSearchParams(searchParams);
+                          next.set("jobId", newJobId);
+                          setSearchParams(next, { replace: true });
+                        } catch {}
+
+                        // Poll until complete (tolerate variant status values)
+                        const isDone = (s: string | undefined) => {
+                          if (!s) return false;
+                          const v = s.toLowerCase();
+                          return v === "complete" || v === "success" || v === "done" || v === "finished";
+                        };
+                        let attempts = 0;
+                        let done = false;
+                        while (!done && attempts < 120) {
+                          attempts++;
+                          try {
+                            const status = await api.getStatus(newJobId);
+                            if (isDone(status.status)) break;
+                            if (status.status === "error") throw new Error("Analysis failed");
+                          } catch (_) {
+                            // ignore transient status errors and keep polling
+                          }
+                          await new Promise((r) => setTimeout(r, 1200));
+                        }
+
+                        // Final fetch
+                        const latest = await api.getResults(newJobId);
+                        resultsCache.current.set(newJobId, latest);
+                        upsertRun({ 
+                          jobId: newJobId, 
+                          status: 'complete', 
+                          detections: latest.results?.length || 0, 
+                          analysisWindow: latest.analysisWindow 
+                        });
+                        setData(latest);
+                        setSelectedIdx(latest.results?.length ? 0 : null);
+                        // Clear the new query prompts after successful run
+                        setNewQueryPrompts([]);
+                        setNewQueryInput("");
+                        toast({ 
+                          title: "Re-query complete", 
+                          description: `Found ${latest.results?.length ?? 0} detections with your new prompts.`,
+                          duration: 3000
+                        });
+                      } catch (e: any) {
+                        toast({ 
+                          title: "Re-query failed", 
+                          description: e?.message || "Please try again.", 
+                          variant: "destructive" 
+                        });
+                      } finally {
+                        setReAnalyzing(false);
+                      }
+                    }}
+                  >
+                    {reAnalyzing ? (
+                      <>
+                        <span className="h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
+                        Searching…
+                      </>
+                    ) : (
+                      "Search Again"
+                    )}
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
         )}
 
         {/* Runs panel */}
