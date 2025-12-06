@@ -249,7 +249,8 @@ async def process_video_analysis(video_id: str, video_path: str, prompts: List[s
             results, json_path = await analyze_video(
                 video_path=analysis_video_path, 
                 prompts=prompts, 
-                output_dir=RESULTS_DIR
+                output_dir=RESULTS_DIR,
+                media_id=video_id  # Pass video_id as media_id for cached re-analysis
             )
         elif model.lower() == "google":
             logger.info(f"Starting Google analysis for {video_id}...")
@@ -2309,7 +2310,7 @@ async def analyze(
                 "message": "Analysis started in background",
                 "media": {
                     "media_id": video_id,
-                    "source": reg.get("source"),
+                    "source": reg.get("source") if reg else None,
                     "original_url": original_url,
                     "duration_s": duration_s,
                 },

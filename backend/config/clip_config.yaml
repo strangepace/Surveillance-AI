@@ -97,3 +97,7 @@ url_ingest:
   preferred_container: "mp4"
   prefer_codecs: ["h264", "avc1", "mp4a"]
   allow_av1_vp9: true
+
+# FAISS Index Storage Settings
+storage:
+  faiss_index_dir: "data/faiss_index"

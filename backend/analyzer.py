@@ -25,6 +25,7 @@ from frame_extractor import extract_frames
 from prompt_interpreter import interpret_multiple_prompts
 from clip_generator import generate_preview_clip
 from alert_classifier import classify_detections, get_alert_summary
+from faiss_indexer import FAISSIndexer
 
 # Set up logging
 logger = logging.getLogger("analyzer")
@@ -195,14 +196,16 @@ class VideoAnalyzer:
         
         return image_features
     
-    async def analyze_video(self, video_path: str, prompts: List[str], output_dir: str) -> str:
+    async def analyze_video(self, video_path: str, prompts: List[str], output_dir: str, media_id: Optional[str] = None) -> str:
         """
         Analyze video with given prompts and generate detection results.
+        Supports cached re-analysis if FAISS index exists.
         
         Args:
             video_path (str): Path to video file
             prompts (List[str]): List of natural language prompts
             output_dir (str): Directory to store results
+            media_id (Optional[str]): Media ID for cached re-analysis. If None, generates from path.
             
         Returns:
             str: Path to results JSON file
@@ -216,9 +219,34 @@ class VideoAnalyzer:
         previews_dir = os.path.join(output_dir, "previews")
         os.makedirs(previews_dir, exist_ok=True)
         
-        # Generate video ID
-        video_id = self.generate_video_id(video_path)
-        logger.info(f"Video ID: {video_id}")
+        # Use provided media_id or generate from path
+        if media_id:
+            video_id = media_id
+            logger.info(f"Using provided media_id: {video_id}")
+        else:
+            video_id = self.generate_video_id(video_path)
+            logger.info(f"Generated video ID: {video_id}")
+        
+        # Check for cached FAISS index
+        storage_config = self.config.get("storage", {})
+        faiss_index_dir = storage_config.get("faiss_index_dir", "data/faiss_index")
+        backend_root = os.path.dirname(os.path.abspath(__file__))
+        if not os.path.isabs(faiss_index_dir):
+            faiss_index_dir = os.path.join(backend_root, faiss_index_dir)
+        
+        indexer = FAISSIndexer(faiss_index_dir)
+        
+        # Check if cached index exists
+        if indexer.index_exists(video_id):
+            logger.info(f"✅ Cached re-analysis enabled for media_id={video_id}")
+            logger.info("Loaded FAISS index from cache")
+            logger.info("Skipping full pipeline")
+            try:
+                return await self._analyze_video_cached(video_id, video_path, prompts, output_dir, previews_dir, indexer)
+            except Exception as e:
+                logger.warning(f"⚠️  Cached re-analysis failed: {e}")
+                logger.warning("Falling back to full analysis pipeline...")
+                # Continue with full analysis below
 
         # Prepare temp frame directory
         temp_frame_dir = os.path.join("temp_frames", video_id)
@@ -268,12 +296,37 @@ class VideoAnalyzer:
             all_similarities = []
             frames_processed = 0
             
+            # Collect all embeddings for FAISS indexing
+            all_embeddings = []
+            all_frame_indices = []
+            all_frame_timestamps = []
+            
             for i in range(0, len(frames), batch_size):
                 batch_frames = frames[i:i + batch_size]
                 batch_timestamps = timestamps[i:i + batch_size]
                 logger.info(f"   Processing batch {i//batch_size + 1}/{(len(frames) + batch_size - 1)//batch_size}")
                 # Encode batch of frames
                 image_features = self.encode_frames(batch_frames)
+                
+                # Collect embeddings for FAISS (normalize and convert to numpy)
+                import torch
+                if isinstance(image_features, torch.Tensor):
+                    # Normalize embeddings (CLIP embeddings should be normalized)
+                    image_features_norm = image_features / image_features.norm(dim=-1, keepdim=True)
+                    # Convert to CPU numpy for FAISS
+                    batch_embeddings = image_features_norm.cpu().numpy()
+                else:
+                    # Already numpy, normalize
+                    norms = np.linalg.norm(image_features, axis=1, keepdims=True)
+                    batch_embeddings = image_features / norms
+                
+                # Store embeddings for FAISS
+                for j in range(len(batch_frames)):
+                    frame_idx = i + j
+                    all_embeddings.append(batch_embeddings[j])
+                    all_frame_indices.append(frame_idx)
+                    all_frame_timestamps.append(batch_timestamps[j])
+                
                 # Compare each frame with each text prompt
                 for j, (frame, timestamp) in enumerate(zip(batch_frames, batch_timestamps)):
                     frame_idx = i + j
@@ -334,6 +387,47 @@ class VideoAnalyzer:
                         
                         logger.info(f"✅ Match at {timestamp_str}: {labels} (confidence: {confidence:.3f})")
             
+            # Step 4.5: Build and save FAISS index
+            logger.info(f"\nStep 4.5: Building FAISS index...")
+            try:
+                # Get FAISS index directory from config
+                storage_config = self.config.get("storage", {})
+                faiss_index_dir = storage_config.get("faiss_index_dir", "data/faiss_index")
+                
+                # Resolve path relative to backend root (where analyzer.py is located)
+                backend_root = os.path.dirname(os.path.abspath(__file__))
+                if not os.path.isabs(faiss_index_dir):
+                    faiss_index_dir = os.path.join(backend_root, faiss_index_dir)
+                
+                logger.info(f"   FAISS index directory: {faiss_index_dir}")
+                
+                # Initialize FAISS indexer
+                indexer = FAISSIndexer(faiss_index_dir)
+                
+                # Convert embeddings list to numpy array
+                if len(all_embeddings) > 0:
+                    embeddings_array = np.array(all_embeddings)
+                    logger.info(f"   Collected {len(all_embeddings)} embeddings for FAISS indexing")
+                    
+                    # Build and save index
+                    success = indexer.build_and_save_index(
+                        media_id=video_id,
+                        embeddings=embeddings_array,
+                        frame_indices=all_frame_indices,
+                        timestamps=all_frame_timestamps
+                    )
+                    
+                    if success:
+                        logger.info(f"✅ FAISS index saved successfully for {video_id}")
+                    else:
+                        logger.warning(f"⚠️  Failed to save FAISS index for {video_id}")
+                else:
+                    logger.warning("⚠️  No embeddings collected, skipping FAISS index creation")
+                    
+            except Exception as e:
+                logger.error(f"❌ Error building FAISS index: {e}", exc_info=True)
+                # Don't fail the entire analysis if FAISS indexing fails
+            
             # Step 5: Save results to JSON
             logger.info(f"\nStep 5: Saving results...")
             
@@ -365,7 +459,8 @@ class VideoAnalyzer:
             # Save JSON results in organized directory
             json_dir = os.path.join(output_dir, "json")
             os.makedirs(json_dir, exist_ok=True)
-            results_file = os.path.join(json_dir, f"video_{video_id}.json")
+            # Use video_id directly (it may already have 'video_' prefix)
+            results_file = os.path.join(json_dir, f"{video_id}.json")
             
             # Convert results to JSON-serializable format
             json_results = []
@@ -406,6 +501,202 @@ class VideoAnalyzer:
             # Clean up temp frame directory
             if os.path.exists(temp_frame_dir):
                 shutil.rmtree(temp_frame_dir)
+    
+    async def _analyze_video_cached(
+        self, 
+        media_id: str, 
+        video_path: str, 
+        prompts: List[str], 
+        output_dir: str, 
+        previews_dir: str,
+        indexer: FAISSIndexer
+    ) -> str:
+        """
+        Cached re-analysis using existing FAISS index.
+        Skips frame extraction and CLIP encoding of frames.
+        
+        Args:
+            media_id (str): Media ID for the cached index
+            video_path (str): Path to video file (for preview generation)
+            prompts (List[str]): List of natural language prompts
+            output_dir (str): Directory to store results
+            previews_dir (str): Directory for preview clips
+            indexer (FAISSIndexer): Initialized FAISS indexer
+            
+        Returns:
+            str: Path to results JSON file
+        """
+        logger.info(f"\n=== CACHED RE-ANALYSIS MODE ===")
+        logger.info(f"Media ID: {media_id}")
+        logger.info(f"Prompts: {prompts}")
+        
+        try:
+            # Step 1: Interpret prompts (same as full analysis)
+            logger.info("\nStep 1: Interpreting prompts...")
+            prompt_categories = await interpret_multiple_prompts(prompts)
+            
+            all_labels = []
+            for category_info in prompt_categories:
+                labels = category_info.get("labels", [])
+                if labels:
+                    all_labels.extend(labels)
+                else:
+                    prompt = category_info.get("prompt", "")
+                    all_labels.append(prompt)
+            
+            all_labels = list(set(all_labels))
+            logger.info(f"   Extracted {len(all_labels)} unique labels: {all_labels}")
+            
+            # Step 2: Load FAISS index and metadata
+            logger.info("\nStep 2: Loading FAISS index and metadata...")
+            metadata = indexer.load_metadata(media_id)
+            if not metadata:
+                raise Exception(f"Failed to load FAISS metadata for {media_id}")
+            
+            frame_indices = metadata.get("frame_indices", [])
+            timestamps = metadata.get("timestamps", [])
+            logger.info(f"   Loaded index with {metadata.get('num_vectors', 0)} vectors")
+            logger.info(f"   Frame indices: {len(frame_indices)}")
+            logger.info(f"   Timestamps: {len(timestamps)}")
+            
+            # Step 3: Encode text prompts only (no frame encoding)
+            logger.info("\nStep 3: Encoding text prompts...")
+            text_features = self.encode_text_prompts(all_labels)
+            logger.info(f"   Encoded {len(all_labels)} text prompts")
+            
+            # Convert text features to numpy for FAISS search
+            import torch
+            if isinstance(text_features, torch.Tensor):
+                text_features_norm = text_features / text_features.norm(dim=-1, keepdim=True)
+                text_embeddings = text_features_norm.cpu().numpy().astype(np.float32)
+            else:
+                norms = np.linalg.norm(text_features, axis=1, keepdims=True)
+                text_embeddings = text_features / norms
+            
+            # Step 4: Search FAISS index
+            logger.info("\nStep 4: Searching FAISS index...")
+            top_k = min(100, metadata.get("num_vectors", 100))  # Search top 100 matches per prompt
+            search_results = indexer.search_index(media_id, text_embeddings, top_k=top_k)
+            
+            if search_results is None:
+                raise Exception(f"FAISS search failed for {media_id}")
+            
+            distances, indices = search_results
+            logger.info(f"   Search completed: {len(indices[0])} results per prompt")
+            
+            # Step 5: Process search results and create detections
+            logger.info("\nStep 5: Processing search results...")
+            detection_results = []
+            
+            # Process each prompt's search results
+            for prompt_idx, label in enumerate(all_labels):
+                prompt_distances = distances[prompt_idx]
+                prompt_indices = indices[prompt_idx]
+                
+                # Filter by similarity threshold
+                for result_idx, (faiss_idx, distance) in enumerate(zip(prompt_indices, prompt_distances)):
+                    # Convert FAISS distance (inner product) to similarity
+                    # For normalized vectors, inner product = cosine similarity
+                    similarity = float(distance)
+                    
+                    if similarity >= self.similarity_threshold:
+                        # Map FAISS index to frame index and timestamp
+                        frame_idx = frame_indices[faiss_idx] if faiss_idx < len(frame_indices) else faiss_idx
+                        timestamp_seconds = timestamps[faiss_idx] if faiss_idx < len(timestamps) else 0.0
+                        
+                        # Format timestamp string
+                        timestamp_str = f"{int(timestamp_seconds//3600):02d}:{int((timestamp_seconds%3600)//60):02d}:{int(timestamp_seconds%60):02d}"
+                        
+                        # Generate preview path (virtual preview mode)
+                        preview_path = f"virtual_preview_{timestamp_str.replace(':', '_')}"
+                        
+                        # Create detection result
+                        result = DetectionResult(
+                            timestamp=timestamp_str,
+                            labels=[label],
+                            confidence=similarity,
+                            preview_clip=preview_path,
+                            frame_index=frame_idx,
+                            prompt_matches=[(label, similarity)]
+                        )
+                        
+                        detection_results.append(result)
+                        logger.info(f"✅ Match at {timestamp_str}: {label} (confidence: {similarity:.3f})")
+            
+            # Remove duplicates (same frame matched by multiple prompts)
+            seen_frames = {}
+            unique_detections = []
+            for result in detection_results:
+                key = (result.frame_index, result.timestamp)
+                if key not in seen_frames:
+                    seen_frames[key] = result
+                    unique_detections.append(result)
+                else:
+                    # Merge labels if same frame
+                    existing = seen_frames[key]
+                    existing.labels = list(set(existing.labels + result.labels))
+                    existing.confidence = max(existing.confidence, result.confidence)
+            
+            detection_results = unique_detections
+            logger.info(f"   Found {len(detection_results)} unique detections after deduplication")
+            
+            # Step 6: Classify and save results (same as full analysis)
+            logger.info(f"\nStep 6: Classifying alerts...")
+            detection_dicts = []
+            for result in detection_results:
+                detection_dict = {
+                    "timestamp": result.timestamp,
+                    "labels": result.labels,
+                    "confidence": result.confidence,
+                    "preview_clip": result.preview_clip,
+                    "summary": result.summary,
+                    "frame_index": result.frame_index,
+                    "prompt_matches": result.prompt_matches
+                }
+                detection_dicts.append(detection_dict)
+            
+            classified_detections = classify_detections(detection_dicts)
+            alert_summary = get_alert_summary(classified_detections)
+            
+            logger.info(f"📊 Alert Summary:")
+            logger.info(f"   Total detections: {alert_summary['total_detections']}")
+            logger.info(f"   Categories: {alert_summary['categories']}")
+            logger.info(f"   Priorities: {alert_summary['priorities']}")
+            
+            # Save JSON results
+            json_dir = os.path.join(output_dir, "json")
+            os.makedirs(json_dir, exist_ok=True)
+            # Use media_id directly (it may already have 'video_' prefix)
+            results_file = os.path.join(json_dir, f"{media_id}.json")
+            
+            json_results = []
+            for result in classified_detections:
+                json_result = result.copy()
+                if 'prompt_matches' in json_result and json_result['prompt_matches']:
+                    json_result['prompt_matches'] = [
+                        (label, float(sim)) for label, sim in json_result['prompt_matches']
+                    ]
+                json_results.append(json_result)
+            
+            final_results = {
+                "detections": json_results,
+                "alert_summary": alert_summary,
+                "video_id": media_id,
+                "analysis_timestamp": time.strftime("%Y-%m-%d %H:%M:%S"),
+                "cached": True
+            }
+            
+            with open(results_file, 'w') as f:
+                json.dump(final_results, f, indent=2)
+            
+            logger.info(f"Saved {len(classified_detections)} detections to {results_file}")
+            logger.info(f"🎉 Cached analysis complete! Found {len(classified_detections)} matches.")
+            
+            return results_file
+            
+        except Exception as e:
+            logger.error(f"❌ Error in cached re-analysis: {e}", exc_info=True)
+            raise
     
     def analyze_video_simple(self, video_path: str, prompts: List[str], output_dir: str) -> str:
         """
@@ -483,80 +774,83 @@ class VideoAnalyzer:
 
 
 # Convenience function for easy usage
-async def analyze_video(video_path: str, prompts: List[str], output_dir: str = "results") -> tuple:
-    """
-    Main analysis function with comprehensive error handling.
-    
-    Args:
-        video_path (str): Path to video file
-        prompts (List[str]): List of prompts to search for
-        output_dir (str): Directory to save results
+async def analyze_video(video_path: str, prompts: List[str], output_dir: str = "results", media_id: Optional[str] = None) -> tuple:
+        """
+        Main analysis function with comprehensive error handling.
+        Supports cached re-analysis via media_id parameter.
         
-    Returns:
-        tuple: (results_dict, json_path)
-    """
-    logger = logging.getLogger("analyzer")
-    logger.debug("DEBUG: Entered analyze_video function")
-    
-    try:
-        # Validate inputs
-        if not video_path or not os.path.exists(video_path):
-            raise Exception(f"Video file not found: {video_path}")
+        Args:
+            video_path (str): Path to video file
+            prompts (List[str]): List of prompts to search for
+            output_dir (str): Directory to save results
+            media_id (Optional[str]): Media ID for cached re-analysis
+            
+        Returns:
+            tuple: (results_dict, json_path)
+        """
+        logger = logging.getLogger("analyzer")
+        logger.debug("DEBUG: Entered analyze_video function")
         
-        if not prompts or len(prompts) == 0:
-            raise Exception("No prompts provided")
-        
-        # Use Colab-compatible output directory
-        if colab_compat.is_colab():
-            output_dir = colab_compat.get_results_dir()
-            print(f"🌐 Using Colab output directory: {output_dir}")
-        
-        # Ensure output directory exists
-        colab_compat.ensure_directory(output_dir)
-        
-        # Initialize analyzer with error handling
         try:
-            analyzer = VideoAnalyzer()
+            # Validate inputs
+            if not video_path or not os.path.exists(video_path):
+                raise Exception(f"Video file not found: {video_path}")
+            
+            if not prompts or len(prompts) == 0:
+                raise Exception("No prompts provided")
+            
+            # Use Colab-compatible output directory
+            if colab_compat.is_colab():
+                output_dir = colab_compat.get_results_dir()
+                print(f"🌐 Using Colab output directory: {output_dir}")
+            
+            # Ensure output directory exists
+            colab_compat.ensure_directory(output_dir)
+            
+            # Initialize analyzer with error handling
+            try:
+                analyzer = VideoAnalyzer()
+            except Exception as e:
+                error_handler.log_error(e, ErrorType.CLIP_MODEL, {
+                    "video_path": video_path,
+                    "prompts": prompts
+                })
+                raise Exception(f"Failed to initialize analyzer: {e}")
+            
+            # Run analysis (with optional media_id for cached mode)
+            try:
+                results_file = await analyzer.analyze_video(video_path, prompts, output_dir, media_id=media_id)
+            except Exception as e:
+                error_handler.log_error(e, ErrorType.FRAME_EXTRACTION, {
+                    "video_path": video_path,
+                    "prompts": prompts,
+                    "output_dir": output_dir,
+                    "media_id": media_id
+                })
+                raise Exception(f"Analysis failed: {e}")
+            
+            # Load results from file with error handling
+            try:
+                with open(results_file, 'r') as f:
+                    results = json.load(f)
+            except Exception as e:
+                error_handler.log_error(e, ErrorType.FILE_IO, {
+                    "results_file": results_file,
+                    "operation": "read_results"
+                })
+                raise Exception(f"Failed to read results: {e}")
+            
+            print("DEBUG - Results Type:", type(results))
+            print("DEBUG - Sample Result:", results[:1] if isinstance(results, list) else results)
+            print("DEBUG: About to return from analyze_video")
+            
+            return results, results_file
+            
         except Exception as e:
-            error_handler.log_error(e, ErrorType.CLIP_MODEL, {
-                "video_path": video_path,
-                "prompts": prompts
-            })
-            raise Exception(f"Failed to initialize analyzer: {e}")
-        
-        # Run analysis
-        try:
-            results_file = await analyzer.analyze_video(video_path, prompts, output_dir)
-        except Exception as e:
-            error_handler.log_error(e, ErrorType.FRAME_EXTRACTION, {
+            # Log the error and re-raise
+            error_handler.log_error(e, ErrorType.UNKNOWN, {
                 "video_path": video_path,
                 "prompts": prompts,
                 "output_dir": output_dir
             })
-            raise Exception(f"Analysis failed: {e}")
-        
-        # Load results from file with error handling
-        try:
-            with open(results_file, 'r') as f:
-                results = json.load(f)
-        except Exception as e:
-            error_handler.log_error(e, ErrorType.FILE_IO, {
-                "results_file": results_file,
-                "operation": "read_results"
-            })
-            raise Exception(f"Failed to read results: {e}")
-        
-        print("DEBUG - Results Type:", type(results))
-        print("DEBUG - Sample Result:", results[:1] if isinstance(results, list) else results)
-        print("DEBUG: About to return from analyze_video")
-        
-        return results, results_file
-        
-    except Exception as e:
-        # Log the error and re-raise
-        error_handler.log_error(e, ErrorType.UNKNOWN, {
-            "video_path": video_path,
-            "prompts": prompts,
-            "output_dir": output_dir
-        })
-        raise 
+            raise 

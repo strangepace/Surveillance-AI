@@ -20,3 +20,4 @@ google-cloud-videointelligence==2.11.1
 google-generativeai==0.3.2
 psutil==5.9.8
 yt-dlp>=2023.12.30
+faiss-cpu>=1.7.4
