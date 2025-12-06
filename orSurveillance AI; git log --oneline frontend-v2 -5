@@ -1,0 +1,20 @@
+* [33m4a66378f[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mintegrated-v2[m[33m, [m[1;31morigin/integrated-v2[m[33m)[m feat: YouTube ingestion, media registry, and re-analysis capabilities
+* [33mc5ced412[m[33m ([m[1;31morigin/integrated-v1[m[33m, [m[1;31morigin/integrated-dev[m[33m, [m[1;32mintegrated-v1[m[33m, [m[1;32mintegrated-dev[m[33m)[m refactor(repo): rename backend-v3 -> backend; update refs; no functional change
+* [33me3c6c0d6[m chore: remove temp_frames from tracking; update .gitignore
+* [33ma288b110[m chore: stop tracking ffmpeg binaries; update .gitignore and README for integrated repo
+* [33m1e2bfb32[m feat: add frontend and docs; unify integrated project on integrated-dev
+* [33md8aa1167[m[33m ([m[1;31morigin/backend-v3.1[m[33m, [m[1;32mbackend-v3.1[m[33m)[m Remove generated files and folders from tracking
+* [33m9d5fac58[m Remove __pycache__ folder from tracking
+* [33mdc8efeaa[m clean: Remove old backend versions from backend-v3.1 branch
+* [33m827ce475[m feat: Complete backend-v3.1 implementation with enhanced features
+* [33me280a6e6[m feat: Complete backend-v3.1 implementation with enhanced features
+* [33m6f367d7d[m[33m ([m[1;31morigin/backend-v3[m[33m, [m[1;32mbackend-v3[m[33m)[m Clean: Remove non-backend-v3 files and artifacts, keep only backend-v3 code and shared essentials
+* [33mb9d9fb7b[m Add backend-v3: FastAPI + CLIP analyzer pipeline
+* [33m333302c5[m feat: implement video frame extraction module for backend-v3 with configurable sampling and metadata
+* [33m093d9130[m feat: implement CLIP integration for backend-v3 with modular detection engine
+* [33m6e15d843[m[33m ([m[1;31morigin/backend-v2[m[33m, [m[1;32mbackend-v2[m[33m)[m feat: migrate backend to v2 foundation, enable multi-prompt analysis, and prep for advanced detection features
+* [33md346a28c[m[33m ([m[1;32mbackend-v1[m[33m)[m Remove .env and credentials.json from tracking, keep local only
+* [33md0d6c2d0[m Remove content directory from tracking - contains large video files and logs
+* [33m3bf3a052[m Remove .env file from tracking - security fix
+* [33m5d9b5bc5[m Cleaned repo: removed venv from tracking, added .gitignore
+* [33m062428b1[m Initial commit: Surveillance AI Platform with FastAPI, Google Video Intelligence, OpenAI/Gemini integration

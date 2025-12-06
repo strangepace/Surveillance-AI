@@ -29,13 +29,21 @@ class FAISSIndexer:
         os.makedirs(index_dir, exist_ok=True)
         logger.info(f"FAISS indexer initialized with directory: {index_dir}")
     
+    def _normalize_media_id(self, media_id: str) -> str:
+        """Strip 'video_' prefix from media_id for clean file naming."""
+        if media_id.startswith("video_"):
+            return media_id[6:]  # Remove "video_" prefix (6 chars)
+        return media_id
+    
     def _get_index_path(self, media_id: str) -> str:
         """Get path to FAISS index file for a media_id."""
-        return os.path.join(self.index_dir, f"{media_id}.index")
+        clean_id = self._normalize_media_id(media_id)
+        return os.path.join(self.index_dir, f"{clean_id}.index")
     
     def _get_metadata_path(self, media_id: str) -> str:
         """Get path to metadata JSON file for a media_id."""
-        return os.path.join(self.index_dir, f"{media_id}.faiss-meta.json")
+        clean_id = self._normalize_media_id(media_id)
+        return os.path.join(self.index_dir, f"{clean_id}.faiss-meta.json")
     
     def build_and_save_index(
         self,
@@ -252,6 +260,7 @@ class FAISSIndexer:
     def index_exists(self, media_id: str) -> bool:
         """
         Check if a FAISS index exists for a media_id.
+        Supports both new format (clean ID) and old format (with video_ prefix) for backward compatibility.
         
         Args:
             media_id (str): Unique identifier for the video/media
@@ -259,7 +268,18 @@ class FAISSIndexer:
         Returns:
             bool: True if both index and metadata files exist
         """
+        # Check new format (normalized, without prefix)
         index_path = self._get_index_path(media_id)
         metadata_path = self._get_metadata_path(media_id)
-        return os.path.exists(index_path) and os.path.exists(metadata_path)
+        if os.path.exists(index_path) and os.path.exists(metadata_path):
+            return True
+        
+        # Backward compatibility: check old format (with prefix) if media_id doesn't already have it
+        if not media_id.startswith("video_"):
+            old_index_path = os.path.join(self.index_dir, f"video_{media_id}.index")
+            old_metadata_path = os.path.join(self.index_dir, f"video_{media_id}.faiss-meta.json")
+            if os.path.exists(old_index_path) and os.path.exists(old_metadata_path):
+                return True
+        
+        return False
 
