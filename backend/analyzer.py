@@ -79,9 +79,9 @@ class VideoAnalyzer:
             if 'similarity_threshold' in self.config:
                 self.similarity_threshold = self.config['similarity_threshold']
             
-            print(f"Loaded config: {self.config_path}")
-            print(f"   Model: {self.config.get('model_name', 'ViT-B-32')}")
-            print(f"   Threshold: {self.similarity_threshold}")
+            logger.info(f"Loaded config: {self.config_path}")
+            logger.info(f"   Model: {self.config.get('model_name', 'ViT-B-32')}")
+            logger.info(f"   Threshold: {self.similarity_threshold}")
             
         except FileNotFoundError as e:
             error_msg = f"Configuration file not found: {self.config_path}"
@@ -98,7 +98,7 @@ class VideoAnalyzer:
             self.clip_model, self.clip_tokenizer, self.clip_preprocess, self.device = get_clip_model(
                 config_path=self.config_path
             )
-            print(f"CLIP model loaded on {self.device}")
+            logger.info(f"CLIP model loaded on {self.device}")
             
         except Exception as e:
             error_msg = f"CLIP model loading failed: {e}"
@@ -710,7 +710,7 @@ class VideoAnalyzer:
         Returns:
             str: Path to results JSON file
         """
-        print(f"Simple video analysis: {video_path}")
+        logger.info(f"Simple video analysis: {video_path}")
         
         # Create output directories
         os.makedirs(output_dir, exist_ok=True)
@@ -755,10 +755,10 @@ class VideoAnalyzer:
                 )
                 
                 detection_results.append(result)
-                print(f"   ✅ Simulated detection at {timestamp}: {labels} (confidence: {confidence:.3f})")
+                logger.info(f"   ✅ Simulated detection at {timestamp}: {labels} (confidence: {confidence:.3f})")
                 
             except Exception as e:
-                print(f"   ⚠️  Failed to generate preview for {timestamp}: {e}")
+                logger.warning(f"   ⚠️  Failed to generate preview for {timestamp}: {e}")
         
         # Save results in organized directory
         json_dir = os.path.join(output_dir, "json")
@@ -769,15 +769,18 @@ class VideoAnalyzer:
         with open(results_file, 'w') as f:
             json.dump(json_results, f, indent=2)
         
-        print(f"💾 Saved {len(detection_results)} detections to {results_file}")
+        logger.info(f"💾 Saved {len(detection_results)} detections to {results_file}")
         return results_file
 
 
 # Convenience function for easy usage
+# This function now uses AnalyzerService internally for cleaner architecture
 async def analyze_video(video_path: str, prompts: List[str], output_dir: str = "results", media_id: Optional[str] = None) -> tuple:
         """
         Main analysis function with comprehensive error handling.
         Supports cached re-analysis via media_id parameter.
+        
+        This is a compatibility wrapper that uses AnalyzerService internally.
         
         Args:
             video_path (str): Path to video file
@@ -789,7 +792,7 @@ async def analyze_video(video_path: str, prompts: List[str], output_dir: str = "
             tuple: (results_dict, json_path)
         """
         logger = logging.getLogger("analyzer")
-        logger.debug("DEBUG: Entered analyze_video function")
+        logger.debug("Entered analyze_video function")
         
         try:
             # Validate inputs
@@ -802,24 +805,25 @@ async def analyze_video(video_path: str, prompts: List[str], output_dir: str = "
             # Use Colab-compatible output directory
             if colab_compat.is_colab():
                 output_dir = colab_compat.get_results_dir()
-                print(f"🌐 Using Colab output directory: {output_dir}")
+                logger.info(f"Using Colab output directory: {output_dir}")
             
             # Ensure output directory exists
             colab_compat.ensure_directory(output_dir)
             
-            # Initialize analyzer with error handling
+            # Initialize analyzer service with error handling
             try:
-                analyzer = VideoAnalyzer()
+                from analyzer_service import AnalyzerService
+                service = AnalyzerService()
             except Exception as e:
                 error_handler.log_error(e, ErrorType.CLIP_MODEL, {
                     "video_path": video_path,
                     "prompts": prompts
                 })
-                raise Exception(f"Failed to initialize analyzer: {e}")
+                raise Exception(f"Failed to initialize analyzer service: {e}")
             
             # Run analysis (with optional media_id for cached mode)
             try:
-                results_file = await analyzer.analyze_video(video_path, prompts, output_dir, media_id=media_id)
+                results_file = await service.analyze_video(video_path, prompts, output_dir, media_id=media_id)
             except Exception as e:
                 error_handler.log_error(e, ErrorType.FRAME_EXTRACTION, {
                     "video_path": video_path,
@@ -840,9 +844,8 @@ async def analyze_video(video_path: str, prompts: List[str], output_dir: str = "
                 })
                 raise Exception(f"Failed to read results: {e}")
             
-            print("DEBUG - Results Type:", type(results))
-            print("DEBUG - Sample Result:", results[:1] if isinstance(results, list) else results)
-            print("DEBUG: About to return from analyze_video")
+            logger.debug(f"Results type: {type(results)}")
+            logger.debug("About to return from analyze_video")
             
             return results, results_file
             

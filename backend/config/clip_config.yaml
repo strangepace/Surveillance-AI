@@ -1,38 +1,142 @@
-batch_size: 8
+# ============================================================================
+# Surveillance AI - Configuration File
+# ============================================================================
+# This file contains all configuration settings for the backend.
+# Organized by functional area for clarity and maintainability.
+# ============================================================================
+
+# ----------------------------------------------------------------------------
+# Model Configuration
+# ----------------------------------------------------------------------------
+model:
+  name: ViT-B-32
+  batch_size: 8
+  frame_size: [224, 224]
+
+# ----------------------------------------------------------------------------
+# Device Configuration
+# ----------------------------------------------------------------------------
 device:
   auto_detect: true
   force_cpu: false
   log_device: true
+
+# ----------------------------------------------------------------------------
+# Detection Configuration
+# ----------------------------------------------------------------------------
+detection:
+  similarity_threshold: 0.21  # Threshold for CLIP similarity matching
+  # Detector-specific settings
+  detectors:
+    people:
+      enabled: true
+    color:
+      enabled: true
+    fire:
+      enabled: true
+    weapons:
+      enabled: false  # Placeholder, not yet implemented
+    vehicles:
+      enabled: false  # Placeholder, not yet implemented
+    unusual_activity:
+      enabled: false  # Placeholder, not yet implemented
+
+# ----------------------------------------------------------------------------
+# Frame Extraction Configuration
+# ----------------------------------------------------------------------------
 frame_extraction:
   output_dir: content/frames
   resize: false
-  sampling_rate: 5    # DIAGNOSTIC: high frame density for testing
-frame_size:
-- 224
-- 224
-model_name: ViT-B-32
-preview_clip:
-  length: 3
-  output_dir: results/previews
-similarity_threshold: 0.21   # ADJUSTED: more realistic threshold based on actual similarity ranges
+  sampling_rate: 5  # Extract every Nth frame
 
-# Cache & YouTube controls
+# ----------------------------------------------------------------------------
+# Storage Configuration
+# ----------------------------------------------------------------------------
+storage:
+  faiss_index_dir: "data/faiss_index"  # FAISS vector index storage
+
+# ----------------------------------------------------------------------------
+# Preview Configuration
+# ----------------------------------------------------------------------------
+preview:
+  # Legacy server-side preview generation (fallback mode)
+  generation:
+    enabled: false
+    keep_micro_previews: false
+    path: "results/previews"
+  
+  # Preview clip settings
+  clip:
+    length: 3  # seconds
+    output_dir: results/previews
+  
+  # Preview merge settings for continuous per-label clips
+  merge:
+    enabled: true
+    gap_seconds: 3
+    pad_pre_seconds: 2
+    pad_post_seconds: 2
+    min_seconds: 2
+    max_seconds: 30
+    keep_micro_previews: false
+
+# ----------------------------------------------------------------------------
+# Cache & Media Management
+# ----------------------------------------------------------------------------
 cache:
   max_total_gb: 8
+
+# ----------------------------------------------------------------------------
+# YouTube URL Ingestion Settings
+# ----------------------------------------------------------------------------
 youtube:
   allow: true
 
-# Preview merge settings for continuous per-label clips
-preview_merge:
+url_ingest:
   enabled: true
-  gap_seconds: 3
-  pad_pre_seconds: 2
-  pad_post_seconds: 2
-  min_seconds: 2
-  max_seconds: 30
-  keep_micro_previews: false
+  provider: "youtube"
+  max_duration_minutes: 120
+  max_size_mb: 2048
+  work_dir: "uploads/url_tmp"
+  user_agent: "Mozilla/5.0"
+  keep_hours: 24
+  preferred_quality: "bestvideo[ext=mp4]+bestaudio[ext=m4a]/mp4"
+  preferred_container: "mp4"
+  prefer_codecs: ["h264", "avc1", "mp4a"]
+  allow_av1_vp9: true
 
-# Colab Compatibility Settings
+# ----------------------------------------------------------------------------
+# Export Settings
+# ----------------------------------------------------------------------------
+export:
+  enabled: true
+  watermark: true
+  hash_sha256: true
+  store: "local"
+  public_base_url: "http://127.0.0.1:8000"
+  s3_bucket: ""
+  signed_url_ttl_seconds: 900
+
+# ----------------------------------------------------------------------------
+# Media Serving Settings
+# ----------------------------------------------------------------------------
+media_serving:
+  accept_ranges: true
+  cors_allowed: ["http://localhost:8080", "http://127.0.0.1:8080"]
+
+# ----------------------------------------------------------------------------
+# Ring Buffer Settings (for future HLS streaming)
+# ----------------------------------------------------------------------------
+ring_buffer:
+  enabled: false
+  type: "hls"
+  segment_seconds: 4
+  minutes_to_keep: 30
+  base_dir: "ring"
+
+# ----------------------------------------------------------------------------
+# Path Configuration (Colab Compatibility)
+# ----------------------------------------------------------------------------
 paths:
   # Local environment paths
   base_results_dir: "./results"
@@ -47,57 +151,27 @@ paths:
   colab_models_dir: "/content/models"
   colab_json_dir: "/content/results/json"
 
+# ----------------------------------------------------------------------------
 # Error Handling Settings
+# ----------------------------------------------------------------------------
 error_handling:
   log_stack_traces: true
   return_detailed_errors: true
   max_retries: 3
   timeout_seconds: 600
 
-# Preview Generation Settings (Legacy/Fallback)
-preview_generation:
-  enabled: false
-  keep_micro_previews: false
-  path: "results/previews"
+# ============================================================================
+# Legacy/Backward Compatibility Mappings
+# ============================================================================
+# These mappings ensure backward compatibility with existing code
+# that references old config keys. They will be removed in future versions.
+# ============================================================================
 
-# Export Settings
-export:
-  enabled: true
-  watermark: true
-  hash_sha256: true
-  store: "local"
-  public_base_url: "http://127.0.0.1:8000"
-  s3_bucket: ""
-  signed_url_ttl_seconds: 900
-
-# Media Serving Settings
-media_serving:
-  accept_ranges: true
-  cors_allowed: ["http://localhost:8080","http://127.0.0.1:8080"]
-
-# Ring Buffer Settings (for future HLS streaming)
-ring_buffer:
-  enabled: false
-  type: "hls"
-  segment_seconds: 4
-  minutes_to_keep: 30
-  base_dir: "ring"
-
-# URL Ingestion Settings (YouTube URL analysis)
-url_ingest:
-  enabled: true           # default off (ToS/rights)
-  provider: "youtube"      # only youtube for now
-  max_duration_minutes: 120
-  max_size_mb: 2048
-  work_dir: "uploads/url_tmp"
-  user_agent: "Mozilla/5.0"
-  keep_hours: 24           # cleanup TTL for temp files
-  preferred_quality: "bestvideo[ext=mp4]+bestaudio[ext=m4a]/mp4"
-  # Format inspection settings
-  preferred_container: "mp4"
-  prefer_codecs: ["h264", "avc1", "mp4a"]
-  allow_av1_vp9: true
-
-# FAISS Index Storage Settings
-storage:
-  faiss_index_dir: "data/faiss_index"
+# Legacy keys (deprecated, use new structure above)
+model_name: ViT-B-32  # Use model.name instead
+similarity_threshold: 0.21  # Use detection.similarity_threshold instead
+batch_size: 8  # Use model.batch_size instead
+frame_size: [224, 224]  # Use model.frame_size instead
+preview_clip:
+  length: 3
+  output_dir: results/previews
