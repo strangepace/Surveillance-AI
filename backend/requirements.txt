@@ -21,3 +21,4 @@ google-generativeai==0.3.2
 psutil==5.9.8
 yt-dlp>=2023.12.30
 faiss-cpu>=1.7.4
+websockets>=12.0  # For WebSocket client testing
