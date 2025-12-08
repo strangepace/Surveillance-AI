@@ -175,7 +175,7 @@ live:
   max_alert_queue_size: 1000  # Maximum alerts in alert queue
   
   # Buffer settings
-  buffer_retention_minutes: 10.0  # How many minutes of alerts to keep in buffer
+  buffer_window_sec: 600  # How many seconds of alerts to keep in buffer (default: 10 minutes)
 
 # ============================================================================
 # Legacy/Backward Compatibility Mappings

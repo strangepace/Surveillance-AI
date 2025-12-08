@@ -56,15 +56,15 @@ class LiveBuffer:
     Stores alerts per stream with automatic cleanup of old entries.
     """
     
-    def __init__(self, retention_minutes: float = 10.0):
+    def __init__(self, buffer_window_sec: float = 600.0):
         """
         Initialize live buffer.
         
         Args:
-            retention_minutes (float): How many minutes of alerts to keep (default: 10)
+            buffer_window_sec (float): How many seconds of alerts to keep (default: 600 = 10 minutes)
         """
-        self.retention_minutes = retention_minutes
-        self.retention_seconds = retention_minutes * 60.0
+        self.buffer_window_sec = buffer_window_sec
+        self.retention_seconds = buffer_window_sec
         
         # Storage: stream_id -> list of BufferedAlert (ordered by timestamp)
         self._alerts: Dict[str, List[BufferedAlert]] = defaultdict(list)
@@ -76,7 +76,7 @@ class LiveBuffer:
         self._total_alerts_stored = 0
         self._total_alerts_cleaned = 0
         
-        logger.info(f"LiveBuffer initialized: retention={retention_minutes} minutes")
+        logger.info(f"LiveBuffer initialized: buffer_window={buffer_window_sec} seconds ({buffer_window_sec/60:.1f} minutes)")
     
     def add_alert(self, alert: Alert, stream_id: str = "default"):
         """
@@ -103,19 +103,19 @@ class LiveBuffer:
     def get_recent_alerts(
         self,
         stream_id: str = "default",
-        since_seconds: Optional[float] = None,
+        window_sec: Optional[float] = None,
         limit: Optional[int] = None
     ) -> List[Dict[str, Any]]:
         """
-        Get recent alerts from buffer.
+        Get recent alerts from buffer within time window.
         
         Args:
             stream_id: Stream identifier (default: "default")
-            since_seconds: Only return alerts newer than this many seconds ago (None = all)
+            window_sec: Time window in seconds (None = use buffer_window_sec)
             limit: Maximum number of alerts to return (None = all)
             
         Returns:
-            List of alert dictionaries
+            List of alert dictionaries, ordered by timestamp ascending (oldest → newest)
         """
         with self._lock:
             if stream_id not in self._alerts:
@@ -123,13 +123,15 @@ class LiveBuffer:
             
             alerts = self._alerts[stream_id]
             
-            # Filter by time if specified
-            if since_seconds is not None:
-                cutoff_time = time.time() - since_seconds
-                alerts = [a for a in alerts if a.received_at >= cutoff_time]
+            # Use specified window or default buffer window
+            window = window_sec if window_sec is not None else self.buffer_window_sec
+            cutoff_time = time.time() - window
             
-            # Sort by timestamp (newest first)
-            alerts = sorted(alerts, key=lambda a: a.alert.timestamp_seconds, reverse=True)
+            # Filter by time window
+            alerts = [a for a in alerts if a.received_at >= cutoff_time]
+            
+            # Sort by timestamp ascending (oldest → newest) as per requirements
+            alerts = sorted(alerts, key=lambda a: a.alert.timestamp_seconds, reverse=False)
             
             # Apply limit
             if limit is not None:
@@ -194,7 +196,8 @@ class LiveBuffer:
         with self._lock:
             total_alerts = sum(len(alerts) for alerts in self._alerts.values())
             return {
-                "retention_minutes": self.retention_minutes,
+                "buffer_window_sec": self.buffer_window_sec,
+                "buffer_window_minutes": self.buffer_window_sec / 60.0,
                 "streams": len(self._alerts),
                 "total_alerts": total_alerts,
                 "alerts_per_stream": {sid: len(alerts) for sid, alerts in self._alerts.items()},
@@ -247,19 +250,19 @@ class LiveBuffer:
 _live_buffer: Optional[LiveBuffer] = None
 
 
-def initialize_buffer(retention_minutes: float = 10.0) -> LiveBuffer:
+def initialize_buffer(buffer_window_sec: float = 600.0) -> LiveBuffer:
     """
     Initialize the global live buffer.
     
     Args:
-        retention_minutes: How many minutes of alerts to keep
+        buffer_window_sec: How many seconds of alerts to keep (default: 600 = 10 minutes)
         
     Returns:
         LiveBuffer instance
     """
     global _live_buffer
-    _live_buffer = LiveBuffer(retention_minutes=retention_minutes)
-    logger.info(f"Live buffer initialized with {retention_minutes} minutes retention")
+    _live_buffer = LiveBuffer(buffer_window_sec=buffer_window_sec)
+    logger.info(f"Live buffer initialized with {buffer_window_sec} seconds ({buffer_window_sec/60:.1f} minutes) retention")
     return _live_buffer
 
 

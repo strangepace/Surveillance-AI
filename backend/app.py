@@ -1161,10 +1161,11 @@ async def get_live_alerts(
             else:
                 since_seconds = None
             
-            # Get alerts from buffer
+            # Get alerts from buffer (convert since_seconds to window_sec)
+            window_sec = since_seconds if since_seconds is not None else None
             alerts = buffer.get_recent_alerts(
                 stream_id=stream_id,
-                since_seconds=since_seconds,
+                window_sec=window_sec,
                 limit=limit * page  # Get enough for pagination
             )
             
@@ -1204,6 +1205,69 @@ async def get_live_alerts(
         "page": page,
         "limit": limit
     }
+
+
+@app.get("/live/alerts/recent", tags=["Live", "Alerts"])
+async def get_recent_alerts(
+    streamId: Optional[str] = Query("default", description="Stream ID (default: 'default')"),
+    windowSec: Optional[float] = Query(None, description="Time window in seconds (default: from config, max: 3600)")
+):
+    """
+    Get recent alerts from buffer within time window.
+    
+    Returns alerts ordered by timestamp ascending (oldest → newest).
+    This endpoint is used for initial page load, refresh, and scrubbing.
+    """
+    # Validate windowSec (max 3600 seconds = 1 hour)
+    max_window_sec = 3600.0
+    if windowSec is not None:
+        if windowSec > max_window_sec:
+            raise HTTPException(
+                status_code=400,
+                detail=f"windowSec must not exceed {max_window_sec} seconds (1 hour)"
+            )
+        if windowSec <= 0:
+            raise HTTPException(
+                status_code=400,
+                detail="windowSec must be positive"
+            )
+    
+    # Get buffer window from config if not specified
+    if windowSec is None:
+        try:
+            config = load_clip_config()
+            live_config = config.get("live", {})
+            windowSec = live_config.get("buffer_window_sec", 600.0)
+        except:
+            windowSec = 600.0  # Default fallback
+    
+    # Try to use live buffer
+    if buffer_is_initialized():
+        try:
+            buffer = get_buffer()
+            alerts = buffer.get_recent_alerts(
+                stream_id=streamId,
+                window_sec=windowSec
+            )
+            
+            return {
+                "alerts": alerts,
+                "count": len(alerts),
+                "stream_id": streamId,
+                "window_sec": windowSec
+            }
+        except Exception as e:
+            logger.error(f"Error getting recent alerts from buffer: {e}", exc_info=True)
+            raise HTTPException(status_code=500, detail=str(e))
+    else:
+        # Buffer not initialized - return empty list (not an error)
+        return {
+            "alerts": [],
+            "count": 0,
+            "stream_id": streamId,
+            "window_sec": windowSec,
+            "message": "Buffer not initialized"
+        }
 
 
 @app.get("/live/buffer/stats", tags=["Live", "Buffer"])
@@ -1570,9 +1634,9 @@ async def startup_event():
             logger.info(f"Alert queue initialized (maxsize={max_alert_queue_size})")
             
             # Initialize live buffer
-            retention_minutes = live_config.get("buffer_retention_minutes", 10.0)
-            initialize_buffer(retention_minutes=retention_minutes)
-            logger.info(f"Live buffer initialized (retention={retention_minutes} minutes)")
+            buffer_window_sec = live_config.get("buffer_window_sec", 600.0)
+            initialize_buffer(buffer_window_sec=buffer_window_sec)
+            logger.info(f"Live buffer initialized (buffer_window={buffer_window_sec} seconds)")
             
             # Get live stream configuration
             source_type_str = live_config.get("source_type", "file")
