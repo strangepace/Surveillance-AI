@@ -67,6 +67,10 @@ backend/ffmpeg/
 *.sqlite
 *.sqlite3
 
+# --- FAISS index files (generated data) ---
+**/*.index
+**/*.faiss-meta.json
+
 # --- Misc ---
 *.bak
 *.tmp
