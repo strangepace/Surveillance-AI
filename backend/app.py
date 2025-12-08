@@ -66,6 +66,7 @@ from models.provenance import provenance_db, create_provenance_record
 from live_pipeline import LivePipeline
 from live_source import SourceType
 from live_alerts_queue import initialize_queue, push_alert
+from live_detector import Alert
 
 logger = logging.getLogger("analyzer_api")
 
@@ -196,7 +197,31 @@ app.add_middleware(MediaServingMiddleware)
 task_storage: Dict[str, Dict[str, Any]] = {}
 export_storage: Dict[str, Dict[str, Any]] = {}
 alert_storage: Dict[str, Dict[str, Any]] = {}
-active_websockets: List = []
+
+# --- WebSocket connection management ---
+from typing import Set
+from dataclasses import dataclass
+from datetime import datetime
+
+@dataclass
+class WebSocketConnection:
+    """WebSocket connection info."""
+    websocket: WebSocket
+    camera_id: str
+    connected_at: datetime
+    last_ping: Optional[datetime] = None
+    
+    def __hash__(self):
+        """Make hashable for use in set."""
+        return id(self.websocket)
+    
+    def __eq__(self, other):
+        """Equality based on websocket identity."""
+        if not isinstance(other, WebSocketConnection):
+            return False
+        return id(self.websocket) == id(other.websocket)
+
+active_websockets: Set[WebSocketConnection] = set()
 
 # --- Background task function ---
 async def process_video_analysis(video_id: str, video_path: str, prompts: List[str], model: str, start_ts: Optional[str] = None, end_ts: Optional[str] = None):
@@ -1218,20 +1243,159 @@ async def generate_demo_alert():
     return ActionResponse(ok=True, message="Demo alert generated")
 
 # --- WebSocket support ---
-from fastapi import WebSocket, WebSocketDisconnect
+from fastapi import WebSocket, WebSocketDisconnect, Query
 
 @app.websocket("/ws/live")
-async def websocket_live(websocket: WebSocket, cameraId: Optional[str] = None):
-    """WebSocket endpoint for live alert streaming."""
+async def websocket_live(
+    websocket: WebSocket,
+    cameraId: Optional[str] = Query(None, description="Camera ID filter (optional)")
+):
+    """
+    WebSocket endpoint for live alert streaming.
+    
+    Connects to live_alerts_queue and broadcasts alerts to all connected clients.
+    Supports heartbeat (ping/pong) for connection health.
+    """
     await websocket.accept()
-    active_websockets.append(websocket)
+    
+    # Create connection info
+    conn = WebSocketConnection(
+        websocket=websocket,
+        camera_id=cameraId or "default",
+        connected_at=datetime.now()
+    )
+    active_websockets.add(conn)
+    
+    logger.info(f"WebSocket client connected: cameraId={conn.camera_id}, total_connections={len(active_websockets)}")
     
     try:
         while True:
-            # Keep connection alive
-            await websocket.receive_text()
+            # Receive message (could be ping or other)
+            try:
+                data = await websocket.receive_text()
+                try:
+                    msg = json.loads(data)
+                    if msg.get("type") == "ping":
+                        # Respond to ping with pong
+                        await websocket.send_text(json.dumps({"type": "pong"}))
+                        conn.last_ping = datetime.now()
+                        continue
+                except:
+                    # Not JSON or not a ping, ignore
+                    pass
+            except WebSocketDisconnect:
+                break
+            except Exception as e:
+                logger.error(f"Error receiving WebSocket message: {e}")
+                break
+                
     except WebSocketDisconnect:
-        active_websockets.remove(websocket)
+        logger.info(f"WebSocket client disconnected: cameraId={conn.camera_id}")
+    except Exception as e:
+        logger.error(f"WebSocket error: {e}", exc_info=True)
+    finally:
+        # Remove connection
+        active_websockets.discard(conn)
+        logger.info(f"WebSocket connection removed: cameraId={conn.camera_id}, remaining_connections={len(active_websockets)}")
+
+
+async def broadcast_alert_to_websockets(alert: Alert):
+    """
+    Broadcast alert to all connected WebSocket clients.
+    
+    Args:
+        alert: Alert from live_alerts_queue
+    """
+    if not active_websockets:
+        return
+    
+    # Convert alert to frontend format
+    # Note: alert.timestamp_seconds is relative to stream start, not absolute Unix timestamp
+    # For frontend, we'll use current time as base and add relative offset
+    current_unix = int(time.time())
+    relative_ts = int(alert.timestamp_seconds)
+    
+    # Format timestamp as HH:MM:SS from relative seconds
+    hours = relative_ts // 3600
+    minutes = (relative_ts % 3600) // 60
+    seconds = relative_ts % 60
+    timestamp_str = f"{hours:02d}:{minutes:02d}:{seconds:02d}"
+    
+    # Required fields for WebSocket alert payload
+    alert_data = {
+        # Required fields
+        "stream_id": "default",  # Stream identifier (single stream for MVP)
+        "timestamp": timestamp_str,  # Relative timestamp formatted as HH:MM:SS
+        "frame_index": alert.frame_number,  # Frame number in stream
+        "category": alert.category or (alert.labels[0] if alert.labels else "activity"),  # Primary category/label
+        "confidence": alert.confidence,  # Confidence score (0-1)
+        
+        # Additional fields for frontend compatibility
+        "alertId": f"live_{alert.frame_number}_{relative_ts}",
+        "cameraId": "default",
+        "tsUnix": current_unix,  # Current Unix timestamp (approximate)
+        "labels": alert.labels,  # All detected labels
+        "thumbnailUrl": "",
+        "clipUrl": "",
+        "pinned": False,
+        "acknowledged": False,
+        "note": None,
+        "frameNumber": alert.frame_number,  # Alias for frame_index
+        "metadata": alert.metadata or {}
+    }
+    
+    # Create WebSocket message
+    ws_message = {
+        "type": "alert",
+        "data": alert_data
+    }
+    
+    message_json = json.dumps(ws_message)
+    
+    # Broadcast to all connected clients
+    disconnected = set()
+    for conn in active_websockets:
+        try:
+            await conn.websocket.send_text(message_json)
+        except Exception as e:
+            logger.warning(f"Failed to send alert to WebSocket client {conn.camera_id}: {e}")
+            disconnected.add(conn)
+    
+    # Remove disconnected clients
+    for conn in disconnected:
+        active_websockets.discard(conn)
+        logger.info(f"Removed disconnected WebSocket client: cameraId={conn.camera_id}")
+
+
+async def websocket_alert_broadcaster():
+    """
+    Background task that consumes alerts from live_alerts_queue
+    and broadcasts them to all connected WebSocket clients.
+    """
+    from live_alerts_queue import get_alert, is_initialized
+    
+    logger.info("WebSocket alert broadcaster started")
+    
+    while True:
+        try:
+            # Check if queue is initialized
+            if not is_initialized():
+                await asyncio.sleep(1.0)
+                continue
+            
+            # Get alert from queue (non-blocking with timeout)
+            alert = get_alert(timeout=0.5)
+            
+            if alert:
+                # Broadcast to all WebSocket clients
+                await broadcast_alert_to_websockets(alert)
+            else:
+                # No alert, small sleep to prevent tight loop
+                await asyncio.sleep(0.1)
+                
+        except Exception as e:
+            logger.error(f"Error in WebSocket alert broadcaster: {e}", exc_info=True)
+            await asyncio.sleep(1.0)
 
 # --- Static file serving ---
 app.mount("/uploads", StaticFiles(directory=UPLOAD_DIR), name="uploads")
@@ -1372,6 +1536,10 @@ async def startup_event():
     
     # Start cleanup task
     asyncio.create_task(cleanup_task())
+    
+    # Start WebSocket alert broadcaster (always start, even if live pipeline is disabled)
+    asyncio.create_task(websocket_alert_broadcaster())
+    logger.info("WebSocket alert broadcaster task started")
 
 
 @app.on_event("shutdown")
