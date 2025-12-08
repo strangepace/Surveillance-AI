@@ -67,6 +67,7 @@ from live_pipeline import LivePipeline
 from live_source import SourceType
 from live_alerts_queue import initialize_queue, push_alert
 from live_detector import Alert
+from live_buffer import initialize_buffer, get_buffer, is_initialized as buffer_is_initialized
 
 logger = logging.getLogger("analyzer_api")
 
@@ -1133,12 +1134,58 @@ def send_alert_via_websocket(alert: Alert):
 
 @app.get("/live/alerts", tags=["Live", "Alerts"])
 async def get_live_alerts(
-    cameraId: Optional[str] = Query(None, description="Filter by camera ID"),
+    cameraId: Optional[str] = Query(None, description="Filter by camera/stream ID"),
     since: Optional[int] = Query(None, description="Unix timestamp to filter since"),
+    sinceSeconds: Optional[float] = Query(None, description="Get alerts from last N seconds"),
     limit: int = Query(200, description="Maximum number of alerts to return"),
     page: int = Query(1, description="Page number")
 ):
-    """Get live alert history."""
+    """
+    Get live alert history from buffer.
+    
+    Returns recent alerts from the live buffer (last N minutes).
+    Supports filtering by stream/camera ID and time range.
+    """
+    stream_id = cameraId or "default"
+    
+    # Try to use live buffer first
+    if buffer_is_initialized():
+        try:
+            buffer = get_buffer()
+            
+            # Convert since (Unix timestamp) to sinceSeconds if provided
+            if since is not None:
+                since_seconds = time.time() - since
+            elif sinceSeconds is not None:
+                since_seconds = sinceSeconds
+            else:
+                since_seconds = None
+            
+            # Get alerts from buffer (convert since_seconds to window_sec)
+            window_sec = since_seconds if since_seconds is not None else None
+            alerts = buffer.get_recent_alerts(
+                stream_id=stream_id,
+                window_sec=window_sec,
+                limit=limit * page  # Get enough for pagination
+            )
+            
+            # Apply pagination
+            start_idx = (page - 1) * limit
+            end_idx = start_idx + limit
+            paginated_alerts = alerts[start_idx:end_idx]
+            
+            return {
+                "alerts": paginated_alerts,
+                "total": len(alerts),
+                "page": page,
+                "limit": limit,
+                "stream_id": stream_id
+            }
+        except Exception as e:
+            logger.error(f"Error getting alerts from buffer: {e}", exc_info=True)
+            # Fall through to legacy storage
+    
+    # Fallback to legacy alert_storage
     alerts = list(alert_storage.values())
     
     # Apply filters
@@ -1152,12 +1199,106 @@ async def get_live_alerts(
     end_idx = start_idx + limit
     paginated_alerts = alerts[start_idx:end_idx]
     
-    return AlertsResponse(
-        alerts=[Alert(**alert) for alert in paginated_alerts],
-        total=len(alerts),
-        page=page,
-        limit=limit
-    )
+    return {
+        "alerts": paginated_alerts,
+        "total": len(alerts),
+        "page": page,
+        "limit": limit
+    }
+
+
+@app.get("/live/alerts/recent", tags=["Live", "Alerts"])
+async def get_recent_alerts(
+    streamId: Optional[str] = Query("default", description="Stream ID (default: 'default')"),
+    windowSec: Optional[float] = Query(None, description="Time window in seconds (default: from config, max: 3600)")
+):
+    """
+    Get recent alerts from buffer within time window.
+    
+    Returns alerts ordered by timestamp ascending (oldest → newest).
+    This endpoint is used for initial page load, refresh, and scrubbing.
+    """
+    # Validate windowSec (max 3600 seconds = 1 hour)
+    max_window_sec = 3600.0
+    if windowSec is not None:
+        if windowSec > max_window_sec:
+            raise HTTPException(
+                status_code=400,
+                detail=f"windowSec must not exceed {max_window_sec} seconds (1 hour)"
+            )
+        if windowSec <= 0:
+            raise HTTPException(
+                status_code=400,
+                detail="windowSec must be positive"
+            )
+    
+    # Get buffer window from config if not specified
+    if windowSec is None:
+        try:
+            config = load_clip_config()
+            live_config = config.get("live", {})
+            windowSec = live_config.get("buffer_window_sec", 600.0)
+        except:
+            windowSec = 600.0  # Default fallback
+    
+    # Try to use live buffer
+    if buffer_is_initialized():
+        try:
+            buffer = get_buffer()
+            alerts = buffer.get_recent_alerts(
+                stream_id=streamId,
+                window_sec=windowSec
+            )
+            
+            return {
+                "alerts": alerts,
+                "count": len(alerts),
+                "stream_id": streamId,
+                "window_sec": windowSec
+            }
+        except Exception as e:
+            logger.error(f"Error getting recent alerts from buffer: {e}", exc_info=True)
+            raise HTTPException(status_code=500, detail=str(e))
+    else:
+        # Buffer not initialized - return empty list (not an error)
+        return {
+            "alerts": [],
+            "count": 0,
+            "stream_id": streamId,
+            "window_sec": windowSec,
+            "message": "Buffer not initialized"
+        }
+
+
+@app.get("/live/buffer/stats", tags=["Live", "Buffer"])
+async def get_buffer_stats():
+    """Get live buffer statistics."""
+    if not buffer_is_initialized():
+        raise HTTPException(status_code=503, detail="Live buffer not initialized")
+    
+    try:
+        buffer = get_buffer()
+        stats = buffer.get_stats()
+        return stats
+    except Exception as e:
+        logger.error(f"Error getting buffer stats: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/live/buffer/streams", tags=["Live", "Buffer"])
+async def get_buffer_streams():
+    """Get list of active streams in buffer."""
+    if not buffer_is_initialized():
+        raise HTTPException(status_code=503, detail="Live buffer not initialized")
+    
+    try:
+        buffer = get_buffer()
+        streams = buffer.get_streams()
+        return {"streams": streams}
+    except Exception as e:
+        logger.error(f"Error getting buffer streams: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
 
 @app.post("/live/acknowledge", tags=["Live", "Actions"])
 async def acknowledge_alert(request: AcknowledgeRequest):
@@ -1387,6 +1528,14 @@ async def websocket_alert_broadcaster():
             alert = get_alert(timeout=0.5)
             
             if alert:
+                # Store alert in buffer
+                if buffer_is_initialized():
+                    try:
+                        buffer = get_buffer()
+                        buffer.add_alert(alert, stream_id="default")
+                    except Exception as e:
+                        logger.warning(f"Failed to store alert in buffer: {e}")
+                
                 # Broadcast to all WebSocket clients
                 await broadcast_alert_to_websockets(alert)
             else:
@@ -1396,6 +1545,25 @@ async def websocket_alert_broadcaster():
         except Exception as e:
             logger.error(f"Error in WebSocket alert broadcaster: {e}", exc_info=True)
             await asyncio.sleep(1.0)
+
+
+async def buffer_cleanup_task():
+    """
+    Periodic task to clean up old alerts from buffer.
+    """
+    from live_buffer import get_buffer, is_initialized
+    
+    logger.info("Buffer cleanup task started")
+    
+    while True:
+        try:
+            await asyncio.sleep(60.0)  # Run every minute
+            
+            if is_initialized():
+                buffer = get_buffer()
+                buffer.cleanup_all()
+        except Exception as e:
+            logger.error(f"Error in buffer cleanup task: {e}", exc_info=True)
 
 # --- Static file serving ---
 app.mount("/uploads", StaticFiles(directory=UPLOAD_DIR), name="uploads")
@@ -1464,6 +1632,11 @@ async def startup_event():
             max_alert_queue_size = live_config.get("max_alert_queue_size", 1000)
             initialize_queue(maxsize=max_alert_queue_size)
             logger.info(f"Alert queue initialized (maxsize={max_alert_queue_size})")
+            
+            # Initialize live buffer
+            buffer_window_sec = live_config.get("buffer_window_sec", 600.0)
+            initialize_buffer(buffer_window_sec=buffer_window_sec)
+            logger.info(f"Live buffer initialized (buffer_window={buffer_window_sec} seconds)")
             
             # Get live stream configuration
             source_type_str = live_config.get("source_type", "file")
@@ -1540,6 +1713,11 @@ async def startup_event():
     # Start WebSocket alert broadcaster (always start, even if live pipeline is disabled)
     asyncio.create_task(websocket_alert_broadcaster())
     logger.info("WebSocket alert broadcaster task started")
+    
+    # Start buffer cleanup task (if buffer is initialized)
+    if buffer_is_initialized():
+        asyncio.create_task(buffer_cleanup_task())
+        logger.info("Buffer cleanup task started")
 
 
 @app.on_event("shutdown")

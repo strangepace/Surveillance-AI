@@ -173,6 +173,9 @@ live:
   # Queue sizes
   max_frame_queue_size: 100  # Maximum frames in frame queue
   max_alert_queue_size: 1000  # Maximum alerts in alert queue
+  
+  # Buffer settings
+  buffer_window_sec: 600  # How many seconds of alerts to keep in buffer (default: 10 minutes)
 
 # ============================================================================
 # Legacy/Backward Compatibility Mappings
