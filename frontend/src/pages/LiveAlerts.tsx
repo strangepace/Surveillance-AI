@@ -158,7 +158,12 @@ const LiveAlertsPage: React.FC = () => {
     // Connect to live API and fetch history on mount with precedence
     const cam = committedCameraRef.current;
     live.connect(cam || null);
-    live.fetchHistory({ cameraId: cam || undefined, limit: 200 });
+    const windowSec =
+      filters.timeRange === "30s" ? 30 :
+      filters.timeRange === "2m" ? 120 :
+      filters.timeRange === "10m" ? 600 :
+      filters.timeRange === "1h" ? 3600 : 86400;
+    live.fetchHistory({ cameraId: cam || undefined, windowSec, limit: 200 });
 
     // focus restoration after returning from filters
     const sel = sessionStorage.getItem("live.returnFocus");

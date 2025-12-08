@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
-import { ArrowLeft, Check, Download, Pin, PinOff, Share2, Volume2, VolumeX, Play, Pause } from "lucide-react";
+import { ArrowLeft, Check, Download, Pin, PinOff, Share2, Volume2, VolumeX, Play, Pause, FileJson2, FileSpreadsheet } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import LazyVideo from "@/components/LazyVideo";
 
@@ -93,34 +93,29 @@ const LiveReviewPage: React.FC = () => {
             <Check className="h-4 w-4" />
           </Button>
           <Button size="sm" variant="ghost" onClick={onCopy}><Share2 className="h-4 w-4" /></Button>
-          {exportUrl ? (
-            <Button size="sm" variant="outline" asChild>
-              <a href={exportUrl} target="_blank" rel="noopener noreferrer"><Download className="h-4 w-4 mr-1" /> Open export</a>
-            </Button>
-          ) : (
-            <Button
-              size="sm"
-              onClick={async () => {
-                try {
-                  setExportErr(null);
-                  setExporting(true);
-                  const exportId = await live.export(alert.alertId);
-                  const { url } = await live.pollExport(exportId);
-                  setExportUrl(url || null);
-                } catch (e: any) {
-                  setExportErr(String(e?.message || e));
-                } finally {
-                  setExporting(false);
-                }
-              }}
-              disabled={exporting}
-              variant="default"
-              aria-busy={exporting}
-              aria-live="polite"
-            >
-              <Download className="h-4 w-4 mr-1" /> {exporting ? "Exporting…" : "Export clip"}
-            </Button>
-          )}
+          {/* Placeholder: clip export via backend if available */}
+          <Button
+            size="sm"
+            onClick={async () => {
+              try {
+                setExportErr(null);
+                setExporting(true);
+                const exportId = await live.export(alert.alertId);
+                const { url } = await live.pollExport(exportId);
+                setExportUrl(url || null);
+              } catch (e: any) {
+                setExportErr(String(e?.message || e));
+              } finally {
+                setExporting(false);
+              }
+            }}
+            disabled={exporting}
+            variant="default"
+            aria-busy={exporting}
+            aria-live="polite"
+          >
+            <Download className="h-4 w-4 mr-1" /> {exporting ? "Exporting…" : "Export clip"}
+          </Button>
         </div>
           {exportErr && <span className="text-xs text-destructive ml-2">{exportErr}</span>}
       </header>
@@ -179,6 +174,20 @@ const LiveReviewPage: React.FC = () => {
 
           <Card>
             <CardContent className="p-4 space-y-2">
+              <div className="text-sm">Export alert (JSON/CSV)</div>
+              <div className="flex gap-2">
+                <Button size="sm" variant="outline" onClick={() => exportAlert(alert, "json")}>
+                  <FileJson2 className="h-4 w-4 mr-1" /> JSON
+                </Button>
+                <Button size="sm" variant="outline" onClick={() => exportAlert(alert, "csv")}>
+                  <FileSpreadsheet className="h-4 w-4 mr-1" /> CSV
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardContent className="p-4 space-y-2">
               <div className="text-sm">Add note</div>
               <Textarea
                 value={note}
@@ -213,6 +222,36 @@ const LiveReviewPage: React.FC = () => {
 };
 
 export default LiveReviewPage;
+
+// Helpers
+function exportAlert(alert: any, fmt: "json" | "csv") {
+  const filename = `alert_${alert.alertId}.${fmt}`;
+  let blob: Blob;
+  if (fmt === "json") {
+    blob = new Blob([JSON.stringify(alert, null, 2)], { type: "application/json" });
+  } else {
+    const row = [
+      ["alertId", alert.alertId],
+      ["cameraId", alert.cameraId],
+      ["tsUnix", alert.tsUnix],
+      ["timestamp", alert.timestamp],
+      ["category", alert.category],
+      ["confidence", alert.confidence],
+      ["labels", (alert.labels || []).join(" ")],
+      ["pinned", alert.pinned],
+      ["acknowledged", alert.acknowledged],
+      ["note", alert.note ?? ""],
+    ];
+    const csv = row.map(([k, v]) => `${k},${JSON.stringify(v ?? "")}`).join("\n");
+    blob = new Blob([csv], { type: "text/csv" });
+  }
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(url);
+}
 
 // Video player with visibility-based pause/resume
 const VideoWithVisibility: React.FC<{ src: string; poster?: string; muted: boolean; playing: boolean; onPlayChange: (p: boolean) => void; }> = ({ src, poster, muted, playing, onPlayChange }) => {
