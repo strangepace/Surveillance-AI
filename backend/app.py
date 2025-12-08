@@ -62,7 +62,15 @@ from utils.ffmpeg import clip_video_segment, get_video_info, has_ffmpeg
 from google_engine import analyze_with_google  # Google Video Intelligence placeholder
 from models.provenance import provenance_db, create_provenance_record
 
+# Live stream processing imports
+from live_pipeline import LivePipeline
+from live_source import SourceType
+from live_alerts_queue import initialize_queue, push_alert
+
 logger = logging.getLogger("analyzer_api")
+
+# Global live pipeline instance
+live_pipeline: Optional[LivePipeline] = None
 
 # --- Initialize Colab compatibility ---
 colab_compat.log_environment()
@@ -1262,6 +1270,8 @@ async def process_alert_export(export_id: str):
 @app.on_event("startup")
 async def startup_event():
     """Startup tasks."""
+    global live_pipeline
+    
     # Load and validate URL ingestion config
     try:
         config = load_clip_config()
@@ -1276,8 +1286,106 @@ async def startup_event():
     except Exception as e:
         logger.warning(f"Could not load URL ingestion config: {e}")
     
+    # Initialize and start live stream processing pipeline
+    try:
+        config = load_clip_config()
+        live_config = config.get("live", {})
+        
+        if live_config.get("enabled", False):
+            logger.info("=" * 60)
+            logger.info("LIVE STREAM PROCESSING - INITIALIZING")
+            logger.info("=" * 60)
+            
+            # Initialize alert queue
+            max_alert_queue_size = live_config.get("max_alert_queue_size", 1000)
+            initialize_queue(maxsize=max_alert_queue_size)
+            logger.info(f"Alert queue initialized (maxsize={max_alert_queue_size})")
+            
+            # Get live stream configuration
+            source_type_str = live_config.get("source_type", "file")
+            source_path_config = live_config.get("source_path", "data/live_demo.mp4")
+            sample_fps = live_config.get("sample_fps", 1.0)
+            prompts = live_config.get("prompts", [])
+            
+            # Determine source type
+            source_type = None
+            if source_type_str == "rtsp":
+                source_type = SourceType.RTSP
+            elif source_type_str == "file":
+                source_type = SourceType.FILE
+            elif source_type_str == "camera":
+                source_type = SourceType.CAMERA
+            
+            # Resolve source path (for file type)
+            source_path = source_path_config
+            if source_type == SourceType.FILE:
+                # Resolve relative paths from backend directory
+                if not os.path.isabs(source_path):
+                    source_path = os.path.join(os.path.dirname(__file__), source_path)
+                    source_path = os.path.normpath(source_path)
+                
+                if not os.path.exists(source_path):
+                    logger.warning(f"Live stream source file not found: {source_path}")
+                    logger.warning("Live pipeline will not start. Please check live.source_path in config.")
+                    return
+            
+            logger.info(f"Source type: {source_type_str}")
+            logger.info(f"Source path: {source_path}")
+            logger.info(f"Sample FPS: {sample_fps}")
+            logger.info(f"Prompts: {prompts if prompts else 'Using all enabled detectors'}")
+            
+            # Create pipeline
+            max_frame_queue_size = live_config.get("max_frame_queue_size", 100)
+            
+            pipeline = LivePipeline(
+                source=source_path,
+                prompts=prompts if prompts else ["person", "car", "fire"],  # Default prompts if empty
+                config=config,
+                source_type=source_type,
+                target_fps=sample_fps,
+                similarity_threshold=config.get("detection", {}).get("similarity_threshold", 0.21),
+                max_frame_queue_size=max_frame_queue_size,
+                max_alert_queue_size=max_alert_queue_size
+            )
+            
+            # Add alert callback to push to central queue and log
+            def alert_handler(alert):
+                """Handle alert: push to queue and log."""
+                push_alert(alert)
+                logger.info(f"🚨 LIVE ALERT: {alert.labels} @ {alert.timestamp_seconds:.2f}s (confidence: {alert.confidence:.3f}, frame: {alert.frame_number})")
+            
+            pipeline.add_alert_callback(alert_handler)
+            
+            # Start pipeline
+            if await pipeline.start():
+                live_pipeline = pipeline
+                logger.info("✅ Live stream processing pipeline started successfully")
+                logger.info("=" * 60)
+            else:
+                logger.error("❌ Failed to start live stream processing pipeline")
+        else:
+            logger.info("Live stream processing disabled - set live.enabled=true to enable")
+            
+    except Exception as e:
+        logger.error(f"Failed to initialize live stream processing: {e}", exc_info=True)
+        logger.warning("Live pipeline will not be available")
+    
     # Start cleanup task
     asyncio.create_task(cleanup_task())
+
+
+@app.on_event("shutdown")
+async def shutdown_event():
+    """Shutdown tasks."""
+    global live_pipeline
+    
+    if live_pipeline:
+        logger.info("Stopping live stream processing pipeline...")
+        try:
+            live_pipeline.stop()
+            logger.info("Live stream processing pipeline stopped")
+        except Exception as e:
+            logger.error(f"Error stopping live pipeline: {e}", exc_info=True)
 
 async def cleanup_task():
     """Periodic cleanup of old exports, URL temp files, and provenance records."""

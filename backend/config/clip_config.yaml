@@ -160,6 +160,20 @@ error_handling:
   max_retries: 3
   timeout_seconds: 600
 
+# ----------------------------------------------------------------------------
+# Live Stream Processing Configuration
+# ----------------------------------------------------------------------------
+live:
+  enabled: true  # Set to true to enable live stream processing
+  source_type: "file"  # "file" or "rtsp" (future)
+  source_path: "data/live_demo.mp4"  # Path to video file or RTSP URL
+  sample_fps: 1.0  # Frames per second to analyze
+  prompts: ["person", "car", "fire"]  # Detection prompts (optional, can be empty to use all enabled detectors)
+  
+  # Queue sizes
+  max_frame_queue_size: 100  # Maximum frames in frame queue
+  max_alert_queue_size: 1000  # Maximum alerts in alert queue
+
 # ============================================================================
 # Legacy/Backward Compatibility Mappings
 # ============================================================================
