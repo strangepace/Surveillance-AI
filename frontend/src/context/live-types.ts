@@ -24,7 +24,7 @@ export type LiveFilters = {
   search: string;
   sort: SortKey;
   confidenceRange: [number, number];
-  timeRange: "10m" | "1h" | "24h" | "custom";
+  timeRange: "30s" | "2m" | "10m" | "1h" | "24h" | "custom";
   cameraId?: string | null;
 };
 

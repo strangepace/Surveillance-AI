@@ -13,6 +13,16 @@ const DEFAULT_DEV: DevOptions = {
   useRealApi: true,
 };
 
+const DEFAULT_TIME_RANGE: LiveFilters["timeRange"] = "10m";
+const TIME_RANGE_TO_SEC: Record<LiveFilters["timeRange"], number> = {
+  "30s": 30,
+  "2m": 120,
+  "10m": 600,
+  "1h": 3600,
+  "24h": 86400,
+  custom: 86400,
+};
+
 function genId() { return `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`; }
 
 // Mock helpers
@@ -58,7 +68,7 @@ export const LiveProvider: React.FC<{ children: React.ReactNode }> = ({ children
     search: "",
     sort: "newest",
     confidenceRange: [0, 1],
-    timeRange: "24h",
+    timeRange: DEFAULT_TIME_RANGE,
     cameraId: null,
   }));
   const persistedDev = loadDevPersist();
@@ -261,8 +271,9 @@ export const LiveProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const fetchHistory = async (params?: { cameraId?: string; since?: number; limit?: number }) => {
     try {
       const cam = params?.cameraId ?? filters.cameraId ?? "";
-      const resp = await api.getLiveAlerts(cam, params?.since, params?.limit ?? 200);
-      const list: Alert[] = (resp?.alerts || resp || []).map((data: any) => ({
+      const windowSec = TIME_RANGE_TO_SEC[filters.timeRange] ?? 600;
+      const resp = await fetchLiveHistory({ cameraId: cam, windowSec, limit: params?.limit ?? 200 });
+      const list: Alert[] = (resp || []).map((data: any) => ({
         alertId: data.alertId || data.id,
         cameraId: data.cameraId || cam,
         tsUnix: data.tsUnix || Math.floor(Date.now() / 1000),

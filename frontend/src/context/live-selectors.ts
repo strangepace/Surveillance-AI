@@ -21,7 +21,12 @@ export function filterAlerts(alerts: Alert[], f: LiveFilters): Alert[] {
   const { categories, search, confidenceRange, timeRange, cameraId } = f;
   const [minC, maxC] = confidenceRange;
   const now = nowTs();
-  const rangeSec = timeRange === "10m" ? 600 : timeRange === "1h" ? 3600 : timeRange === "24h" ? 86400 : 86400;
+  const rangeSec =
+    timeRange === "30s" ? 30 :
+    timeRange === "2m" ? 120 :
+    timeRange === "10m" ? 600 :
+    timeRange === "1h" ? 3600 :
+    timeRange === "24h" ? 86400 : 86400;
   const q = search.trim().toLowerCase();
   return alerts.filter((a) => {
     if (categories.size && !categories.has(a.category)) return false;

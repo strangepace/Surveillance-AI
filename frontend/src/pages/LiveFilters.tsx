@@ -63,7 +63,7 @@ const LiveFiltersPage: React.FC = () => {
       search: "",
       sort: "newest",
       confidenceRange: [0, 1],
-      timeRange: "24h",
+    timeRange: "10m",
       cameraId: null,
     });
   };
@@ -119,6 +119,8 @@ const LiveFiltersPage: React.FC = () => {
                 <Select value={draft.timeRange} onValueChange={(v) => setDraft((p) => ({ ...p, timeRange: v as any }))}>
                   <SelectTrigger className="w-full"><SelectValue placeholder="Select" /></SelectTrigger>
                   <SelectContent>
+                    <SelectItem value="30s">Last 30 seconds</SelectItem>
+                    <SelectItem value="2m">Last 2 minutes</SelectItem>
                     <SelectItem value="10m">Last 10 minutes</SelectItem>
                     <SelectItem value="1h">Last 1 hour</SelectItem>
                     <SelectItem value="24h">Last 24 hours</SelectItem>
