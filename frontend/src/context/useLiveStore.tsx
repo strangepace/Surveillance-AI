@@ -94,13 +94,13 @@ export const LiveProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const noteCtrlsRef = useRef<Map<string, AbortController>>(new Map());
-  // Mock generator (enabled when: flags.enableLiveMock AND (dev.useRealApi=false OR API unavailable))
+  // Mock generator (used only on explicit fallback or when API unavailable)
   const mockTimer = useRef<number | undefined>(undefined);
   const mockFlushTimer = useRef<number | undefined>(undefined);
   const mockBuf = useRef<Alert[]>([]);
   const mockRunning = useRef(false);
   const startMock = () => {
-    if (!flags.enableLiveMock || mockRunning.current) return;
+    if (mockRunning.current) return;
     mockRunning.current = true;
     setConnection("mock");
     const enabledCats = (Object.keys(dev.simCategories) as Category[]).filter((c) => dev.simCategories[c]);
@@ -138,7 +138,7 @@ export const LiveProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const cam = cameraId ?? filters.cameraId ?? null;
     activeCameraRef.current = cam;
     // Decide whether to use real API
-    const forceMock = flags.enableLiveMock || !dev.useRealApi || !API_BASE;
+    const forceMock = !dev.useRealApi || !API_BASE;
     if (forceMock) {
       stopWs();
       startMock();
@@ -179,7 +179,7 @@ export const LiveProvider: React.FC<{ children: React.ReactNode }> = ({ children
             failCountRef.current = 0;
           }
           failCountRef.current += 1;
-          if (flags.enableLiveMock && failCountRef.current >= 3) {
+          if (failCountRef.current >= 3) {
             stopWs();
             startMock();
             setConnection("mock");
