@@ -258,14 +258,29 @@ useEffect(() => {
   return () => clearTimeout(t);
 }, [activeFilters, searchParams, setSearchParams]);
 
+  // Extract all unique labels from results for dynamic filtering
+  const availableLabels = useMemo(() => {
+    if (!data?.results) return [];
+    const allLabels = new Set<string>();
+    data.results.forEach((r) => {
+      r.labels.forEach((label) => allLabels.add(label));
+    });
+    return Array.from(allLabels).sort();
+  }, [data?.results]);
+
   const filteredResults = useMemo(() => {
     if (!data?.results) return [] as ResultEntry[];
     if (activeFilters.length === 0) return data.results;
     return data.results.filter((r) => {
-      const text = r.labels.join(" ");
-      return activeFilters.some((cat) => {
-        const pats = CATEGORY_PATTERNS[cat] || [];
-        return pats.some((re) => re.test(text));
+      const text = r.labels.join(" ").toLowerCase();
+      return activeFilters.some((filter) => {
+        // Check if filter is a category pattern
+        const pats = CATEGORY_PATTERNS[filter];
+        if (pats) {
+          return pats.some((re) => re.test(text));
+        }
+        // Otherwise, treat as exact label match
+        return r.labels.some((label) => label.toLowerCase() === filter.toLowerCase());
       });
     });
   }, [data, activeFilters]);
@@ -287,8 +302,95 @@ const toSeconds = useCallback((ts: string) => {
 
 const rawList = useMemo(() => (filteredResults.length ? filteredResults : data?.results || []), [filteredResults, data]);
 
-// Build timeline items with simple clustering under high density
+// Filter merged previews based on active filters
+const filteredMergedPreviews = useMemo(() => {
+  const mergedPreviews = data?.previewSets?.merged;
+  if (!mergedPreviews || mergedPreviews.length === 0) return [];
+  
+  // If no filters active, return all merged previews
+  if (activeFilters.length === 0) return mergedPreviews;
+  
+  // Filter merged previews based on active filters (OR logic - match any filter)
+  return mergedPreviews.filter((merged) => {
+    const labelText = merged.label.toLowerCase();
+    
+    return activeFilters.some((filter) => {
+      // Check if filter is a category pattern
+      const pats = CATEGORY_PATTERNS[filter];
+      if (pats) {
+        // Category filter - check if merged label matches any pattern
+        return pats.some((re) => re.test(labelText));
+      }
+      // Otherwise, treat as exact label match
+      return labelText === filter.toLowerCase();
+    });
+  });
+}, [data?.previewSets?.merged, activeFilters]);
+
+// Build timeline items - prioritize merged previews if available
 const timelineItems = useMemo(() => {
+  // If filtered merged previews exist, use them for timeline markers (one per merged clip)
+  if (filteredMergedPreviews && filteredMergedPreviews.length > 0) {
+    // Create markers from filtered merged previews
+    const mergedMarkers = filteredMergedPreviews.map((merged, idx) => {
+      // Find the first individual detection that falls within this merged preview
+      const startSeconds = parseHMS(merged.start);
+      const endSeconds = parseHMS(merged.end);
+      
+      // Find matching individual detection (closest to start of merged clip)
+      let matchingDetection: ResultEntry | null = null;
+      let matchingIndex = -1;
+      
+      if (data?.results) {
+        for (let i = 0; i < data.results.length; i++) {
+          const det = data.results[i];
+          const detSeconds = toSeconds(det.timestamp);
+          // Check if detection falls within merged preview time range
+          if (detSeconds >= startSeconds - 1 && detSeconds <= endSeconds + 1) {
+            // Check if labels match
+            if (det.labels.includes(merged.label)) {
+              matchingDetection = det;
+              matchingIndex = i;
+              break; // Use first match
+            }
+          }
+        }
+      }
+      
+      // Create a synthetic result entry for the merged preview
+      const syntheticResult: ResultEntry = matchingDetection || {
+        timestamp: merged.start,
+        labels: [merged.label],
+        confidence: merged.confidence_peak,
+        preview_clip: merged.url || `virtual_preview_${merged.start.replace(/:/g, '_')}`,
+      };
+      
+      return {
+        type: "marker" as const,
+        index: matchingIndex >= 0 ? matchingIndex : idx,
+        r: syntheticResult,
+        merged: true, // Flag to indicate this is from merged preview
+        mergedData: merged, // Store original merged data
+      };
+    });
+    
+    // Apply clustering if too many markers
+    const maxMarkers = Math.max(30, Math.round(120 * zoom));
+    if (mergedMarkers.length <= maxMarkers) {
+      return mergedMarkers;
+    }
+    
+    // Cluster merged markers if needed
+    const clusterSize = Math.ceil(mergedMarkers.length / maxMarkers);
+    const clusters: Array<{ type: "cluster"; start: number; end: number; count: number }> = [];
+    for (let s = 0; s < mergedMarkers.length; s += clusterSize) {
+      const e = Math.min(mergedMarkers.length - 1, s + clusterSize - 1);
+      clusters.push({ type: "cluster", start: s, end: e, count: e - s + 1 });
+    }
+    return clusters;
+  }
+  
+  // Fallback to individual detections if no merged previews
   const list = rawList;
   const maxMarkers = Math.max(30, Math.round(120 * zoom));
   if (list.length <= maxMarkers) {
@@ -301,7 +403,7 @@ const timelineItems = useMemo(() => {
     clusters.push({ type: "cluster", start: s, end: e, count: e - s + 1 });
   }
   return clusters;
-}, [rawList, zoom]);
+}, [rawList, zoom, filteredMergedPreviews, data?.results]);
 
 // Focus nearest marker when selection changes
 useEffect(() => {
@@ -971,42 +1073,123 @@ const handleExportClips = async () => {
                       <div className="relative flex h-full items-center px-2" style={{ gap: `${Math.round(12 * zoom)}px` }}>
                         {timelineItems.map((item, idx) => {
                           if ((item as any).type === "marker") {
-                            const { index, r } = item as any;
+                            const { index, r, merged, mergedData } = item as any;
+                            const isMerged = merged === true;
+                            const displayTimestamp = isMerged && mergedData 
+                              ? `${mergedData.start} - ${mergedData.end}` 
+                              : r.timestamp;
+                            const displayLabel = isMerged && mergedData 
+                              ? mergedData.label 
+                              : r.labels[0];
+                            
                             return (
-                              <Tooltip key={`${r.timestamp}-${index}`}>
+                              <Tooltip key={`${r.timestamp}-${index}-${idx}`}>
                                 <TooltipTrigger asChild>
                                   <button
                                     ref={(el) => (markerRefs.current[index] = el)}
                                     className={`h-4 w-4 rounded-full border transition-transform hover:scale-110 motion-reduce:transform-none motion-reduce:transition-none ${
                                       index === selectedIdx ? "bg-primary ring-2 ring-primary/50" : "bg-secondary"
-                                    } ${pinned.has(index) ? "border-primary" : ""}`}
-                                    aria-label={`Go to ${r.timestamp}`}
+                                    } ${pinned.has(index) ? "border-primary" : ""} ${isMerged ? "ring-1 ring-blue-400" : ""}`}
+                                    aria-label={`Go to ${displayTimestamp}`}
                                     onClick={() => setSelectedIdx(index)}
+                                    title={isMerged ? `Merged clip: ${displayLabel} (${mergedData.duration.toFixed(1)}s)` : undefined}
                                   />
                                 </TooltipTrigger>
                                 <TooltipContent>
                                   <div className="text-xs w-56">
-                                    <div className="font-medium mb-2">{r.timestamp}</div>
-                                    <div className="overflow-hidden rounded border">
-                                      <LazyVideo
-                                        src={r.preview_clip}
-                                        previewClipMp4={r.preview_clip_mp4}
-                                        previewClipWebm={r.preview_clip_webm}
-                                        muted
-                                        playsInline
-                                        preload="none"
-                                        autoPlay
-                                        loop
-                                        className="w-full h-28 object-cover bg-secondary"
-                                        aria-label={`Preview clip for ${r.timestamp}`}
-                                        jobId={jid}
-                                        frameIndex={r.frame_index}
-                                      />
+                                    <div className="font-medium mb-2">
+                                      {isMerged ? (
+                                        <span>
+                                          {displayLabel} <span className="text-muted-foreground">({mergedData.duration.toFixed(1)}s)</span>
+                                        </span>
+                                      ) : (
+                                        displayTimestamp
+                                      )}
+                                    </div>
+                                    {isMerged && mergedData && (
+                                      <div className="text-xs text-muted-foreground mb-2">
+                                        {displayTimestamp}
+                                      </div>
+                                    )}
+                                    <div className="overflow-hidden rounded border bg-secondary">
+                                      {(() => {
+                                        // Check if this is a virtual preview (no actual clip file)
+                                        const isVirtualPreview = r.preview_clip?.startsWith("virtual_preview_");
+                                        const originalVideoUrl = (data?.media as any)?.original_url;
+                                        
+                                        // For merged previews, use the merged time range
+                                        if (isMerged && mergedData && originalVideoUrl) {
+                                          const clipStart = parseHMS(mergedData.start);
+                                          const clipEnd = parseHMS(mergedData.end);
+                                          const videoSrc = `${originalVideoUrl}#t=${clipStart},${clipEnd}`;
+                                          
+                                          return (
+                                            <video
+                                              src={videoSrc}
+                                              muted
+                                              playsInline
+                                              preload="metadata"
+                                              autoPlay
+                                              loop
+                                              className="w-full h-28 object-cover"
+                                              onError={(e) => {
+                                                const target = e.target as HTMLVideoElement;
+                                                target.style.display = 'none';
+                                              }}
+                                            />
+                                          );
+                                        } else if (isVirtualPreview && originalVideoUrl) {
+                                          // Use virtual preview with original video URL and timestamp
+                                          const timestampSeconds = toSeconds(r.timestamp);
+                                          const clipStart = Math.max(0, timestampSeconds - 1.5);
+                                          const clipEnd = timestampSeconds + 1.5;
+                                          const videoSrc = `${originalVideoUrl}#t=${clipStart},${clipEnd}`;
+                                          
+                                          return (
+                                            <video
+                                              src={videoSrc}
+                                              muted
+                                              playsInline
+                                              preload="metadata"
+                                              autoPlay
+                                              loop
+                                              className="w-full h-28 object-cover"
+                                              onError={(e) => {
+                                                // Fallback to static frame if video fails
+                                                const target = e.target as HTMLVideoElement;
+                                                target.style.display = 'none';
+                                              }}
+                                            />
+                                          );
+                                        } else {
+                                          // Use actual preview clip file
+                                          return (
+                                            <LazyVideo
+                                              src={r.preview_clip}
+                                              previewClipMp4={r.preview_clip_mp4}
+                                              previewClipWebm={r.preview_clip_webm}
+                                              muted
+                                              playsInline
+                                              preload="none"
+                                              autoPlay
+                                              loop
+                                              className="w-full h-28 object-cover bg-secondary"
+                                              aria-label={`Preview clip for ${r.timestamp}`}
+                                              jobId={jid}
+                                              frameIndex={r.frame_index}
+                                            />
+                                          );
+                                        }
+                                      })()}
                                     </div>
                                     <div className="mt-2 flex flex-wrap gap-1">
-                                      {r.labels.slice(0, 2).map((l, k) => (
-                                        <Badge key={k} variant="secondary">{l}</Badge>
-                                      ))}
+                                      {isMerged && mergedData ? (
+                                        <Badge variant="secondary">{mergedData.label}</Badge>
+                                      ) : (
+                                        r.labels.slice(0, 2).map((l, k) => (
+                                          <Badge key={k} variant="secondary">{l}</Badge>
+                                        ))
+                                      )}
                                     </div>
                                   </div>
                                 </TooltipContent>
@@ -1036,16 +1219,43 @@ const handleExportClips = async () => {
                     <div className="mt-6 grid gap-4 md:grid-cols-12">
                       <div className="md:col-span-7">
                           <div className="overflow-hidden rounded-lg border">
-                            <LazyVideo
-                              src={selected.preview_clip}
-                              previewClipMp4={selected.preview_clip_mp4}
-                              previewClipWebm={selected.preview_clip_webm}
-                              controls
-                              className="h-auto w-full"
-                              preload="metadata"
-                              jobId={jid}
-                              frameIndex={selected.frame_index}
-                            />
+                            {(() => {
+                              // Check if this is a virtual preview (no actual clip file)
+                              const isVirtualPreview = selected.preview_clip?.startsWith("virtual_preview_");
+                              const originalVideoUrl = (data?.media as any)?.original_url;
+                              
+                              if (isVirtualPreview && originalVideoUrl) {
+                                // Use virtual preview with original video URL and timestamp
+                                const timestampSeconds = toSeconds(selected.timestamp);
+                                const clipStart = Math.max(0, timestampSeconds - 1.5);
+                                const clipEnd = timestampSeconds + 1.5;
+                                const videoSrc = `${originalVideoUrl}#t=${clipStart},${clipEnd}`;
+                                
+                                return (
+                                  <video
+                                    src={videoSrc}
+                                    controls
+                                    className="h-auto w-full"
+                                    preload="metadata"
+                                    playsInline
+                                  />
+                                );
+                              } else {
+                                // Use actual preview clip file
+                                return (
+                                  <LazyVideo
+                                    src={selected.preview_clip}
+                                    previewClipMp4={selected.preview_clip_mp4}
+                                    previewClipWebm={selected.preview_clip_webm}
+                                    controls
+                                    className="h-auto w-full"
+                                    preload="metadata"
+                                    jobId={jid}
+                                    frameIndex={selected.frame_index}
+                                  />
+                                );
+                              }
+                            })()}
                           </div>
                       </div>
                       <div className="md:col-span-5">
@@ -1097,21 +1307,64 @@ const handleExportClips = async () => {
                   <CardDescription>Refine which detections to display.</CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <div className="flex flex-wrap gap-2 sticky top-2 z-10 bg-background/60 backdrop-blur supports-[backdrop-filter]:bg-background/50 p-1 rounded-md">
-                    {Object.keys(CATEGORY_PATTERNS).map((key) => (
-                      <button
-                        key={key}
-                        onClick={() => handleToggleFilter(key)}
-                        className={`inline-flex items-center rounded-full border px-3 py-1 text-sm transition-colors ${
-                          activeFilters.includes(key)
-                            ? "bg-secondary text-secondary-foreground"
-                            : "bg-background hover:bg-accent hover:text-accent-foreground"
-                        }`}
-                      >
-                        {key}
-                      </button>
-                    ))}
-                    <div className="ml-auto flex gap-2">
+                  <div className="space-y-4">
+                    {/* Category Filters */}
+                    <div>
+                      <div className="text-sm font-medium mb-2">Categories</div>
+                      <div className="flex flex-wrap gap-2">
+                        {Object.keys(CATEGORY_PATTERNS).map((key) => {
+                          // Check if this category has any matches in current results
+                          const hasMatches = data?.results?.some((r) => {
+                            const text = r.labels.join(" ").toLowerCase();
+                            const pats = CATEGORY_PATTERNS[key] || [];
+                            return pats.some((re) => re.test(text));
+                          });
+                          
+                          return (
+                            <button
+                              key={key}
+                              onClick={() => handleToggleFilter(key)}
+                              disabled={!hasMatches}
+                              className={`inline-flex items-center rounded-full border px-3 py-1 text-sm transition-colors ${
+                                activeFilters.includes(key)
+                                  ? "bg-secondary text-secondary-foreground"
+                                  : hasMatches
+                                  ? "bg-background hover:bg-accent hover:text-accent-foreground"
+                                  : "bg-background opacity-40 cursor-not-allowed"
+                              }`}
+                              title={hasMatches ? `Filter by ${key}` : `No ${key} found in results`}
+                            >
+                              {key}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+
+                    {/* Dynamic Label Filters */}
+                    {availableLabels.length > 0 && (
+                      <div>
+                        <div className="text-sm font-medium mb-2">Labels ({availableLabels.length})</div>
+                        <div className="flex flex-wrap gap-2 max-h-48 overflow-y-auto">
+                          {availableLabels.map((label) => (
+                            <button
+                              key={label}
+                              onClick={() => handleToggleFilter(label)}
+                              className={`inline-flex items-center rounded-full border px-3 py-1 text-sm transition-colors ${
+                                activeFilters.includes(label)
+                                  ? "bg-primary text-primary-foreground"
+                                  : "bg-background hover:bg-accent hover:text-accent-foreground"
+                              }`}
+                            >
+                              {label}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Filter Actions */}
+                    <div className="flex gap-2 pt-2 border-t">
                       <Button variant="ghost" size="sm" onClick={() => setActiveFilters(COMMON_FILTERS)}>
                         Select common
                       </Button>
@@ -1176,13 +1429,20 @@ const handleExportClips = async () => {
             )}
 
             {/* Merged previews (per-label continuous clips) - Virtual Preview Mode */}
-            {data?.previewSets?.merged && data.previewSets.merged.length > 0 && (
+            {filteredMergedPreviews && filteredMergedPreviews.length > 0 && (
               <div className="space-y-3">
-                <h2 className="text-lg font-semibold tracking-tight">Merged previews (per label)</h2>
+                <h2 className="text-lg font-semibold tracking-tight">
+                  Merged previews (per label)
+                  {activeFilters.length > 0 && (
+                    <span className="text-sm text-muted-foreground ml-2">
+                      ({filteredMergedPreviews.length} of {data?.previewSets?.merged?.length || 0} shown)
+                    </span>
+                  )}
+                </h2>
                 <div className="space-y-6">
                   {(() => {
                     const groups = new Map();
-                    for (const m of (data!.previewSets!.merged!)) {
+                    for (const m of filteredMergedPreviews) {
                       const arr: any[] = groups.get(m.label) || [];
                       arr.push(m);
                       groups.set(m.label, arr);
